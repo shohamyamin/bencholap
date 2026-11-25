@@ -1,5 +1,5 @@
 -- Trino override of q83 (canonical: queries/any/q83.sql)
--- reason: string literal compared with a date column; Trino has no implicit varchar-to-date coercion, so the literal is wrapped in cast(... as date).
+-- reason: string literals compared with a date column are wrapped in cast(... as date) (no implicit varchar-to-date coercion in Trino); integer / integer truncates in Trino, while the TPC-DS answers assume exact division; the dividend is cast to decimal, as in Trino's own benchmark query.
 -- compare: trinodb/trino testing/trino-benchmark-queries/src/main/resources/sql/trino/tpcds/q83.sql
 -- TPC-DS Q83: kit template query83.tpl with the specification's (v2.10.0, Appendix B) qualification substitution parameters
 -- tpcds-kit commit 5a3a81796992b725c2a8b216767e142609966752
@@ -53,11 +53,11 @@ with sr_items as
  group by i_item_id)
   select  sr_items.item_id
        ,sr_item_qty
-       ,sr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 sr_dev
+       ,sr_item_qty/(cast(sr_item_qty as decimal(9,4))+cr_item_qty+wr_item_qty)/3.0 * 100 sr_dev
        ,cr_item_qty
-       ,cr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 cr_dev
+       ,cr_item_qty/(cast(sr_item_qty as decimal(9,4))+cr_item_qty+wr_item_qty)/3.0 * 100 cr_dev
        ,wr_item_qty
-       ,wr_item_qty/(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 * 100 wr_dev
+       ,wr_item_qty/(cast(sr_item_qty as decimal(9,4))+cr_item_qty+wr_item_qty)/3.0 * 100 wr_dev
        ,(sr_item_qty+cr_item_qty+wr_item_qty)/3.0 average
  from sr_items
      ,cr_items

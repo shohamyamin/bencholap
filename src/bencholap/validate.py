@@ -60,14 +60,15 @@ def _cells_equal(actual: Any, expected: str | None) -> bool:
         return e is not None and abs(actual - e) <= max(ABS_TOL, REL_TOL * abs(e))
     if isinstance(actual, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", actual):
         return expected.startswith(actual)
-    return " ".join(str(actual).split()) == " ".join(expected.split())
+    # CHAR padding in the reference system leaves extra spaces inside concatenated strings
+    return "".join(str(actual).split()) == "".join(expected.split())
 
 
 def _rows_equal(a: list[Any], e: list[str | None]) -> bool:
     return len(a) == len(e) and all(_cells_equal(x, y) for x, y in zip(a, e))
 
 
-_ROWCOUNT = re.compile(r"^\(\d+ rows?\)$|^\d+ rows? selected\.?$|^Elapsed:", re.IGNORECASE)
+_ROWCOUNT = re.compile(r"^\(\d+ rows?\)$|^\d+ (?:rows?|record\(s\)) selected\.?$|^Elapsed:", re.IGNORECASE)
 _SEPARATOR = re.compile(r"^[-|+ \t]+$")
 _DASHES = re.compile(r"-+")
 _NOISE = re.compile(r"^(?:-+ OUTPUT Query \d+|INSERT \d+ \d+|(?:CREATE|DROP|SELECT) \d*)\s*$")
@@ -77,11 +78,11 @@ def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
     """Assign each whitespace-separated token to the column it starts in. Some answer files
     are off by one character after tab expansion, so a token starting one position before
     a column belongs to that column."""
-    chunks = re.split(r"\s{2,}", line.strip())
-    if len(chunks) == len(spans):  # every column present and separated: positions do not matter
-        return chunks
-    cells = [[] for _ in spans]
+    chunks = [(m.start(), m.group(0)) for m in re.finditer(r"\S+(?: \S+)*", line)]
     starts = [a for a, _ in spans]
+    if len(chunks) == len(spans) and all(abs(c[0] - a) <= 1 or k == 0 for k, (c, a) in enumerate(zip(chunks, starts))):
+        return [c[1] for c in chunks]  # every column present where expected
+    cells = [[] for _ in spans]
     for m in re.finditer(r"\S+", line):
         k = max((j for j, a in enumerate(starts) if a <= m.start() + 1), default=0)
         cells[k].append(m.group(0))
@@ -90,7 +91,8 @@ def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
 
 def _null(c: str) -> str | None:
     c = c.strip()
-    return None if c in ("", "%") else c   # some SQL*Plus answer files print NULL as "%"
+    # answer files print NULL as an empty field, "%" (some SQL*Plus files) or "[NULL]"
+    return None if c in ("", "%", "[NULL]") else c
 
 
 def parse_answer(path: Path, fmt: str) -> list[list[str | None]]:

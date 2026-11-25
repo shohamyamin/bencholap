@@ -22,11 +22,29 @@ def cast_date_literals(sql: str) -> str:
     return DATE_LITERAL.sub(r"cast('\1' as date)", sql)
 
 
+INT_DIV = ("integer / integer truncates in Trino, while the TPC-DS answers assume exact division; "
+           "the dividend is cast to decimal, as in Trino's own benchmark query")
+
+
+def sub(pattern: str, repl: str):
+    return lambda q: re.sub(pattern, repl, q)
+
+
 EDITS = {
     # Trino does not implicitly coerce varchar literals to date.
     **{q: (("string literal compared with a date column; Trino has no implicit varchar-to-date "
            "coercion, so the literal is wrapped in cast(... as date)"), cast_date_literals)
-       for q in ("q16", "q32", "q58", "q83", "q92", "q94", "q95")},
+       for q in ("q16", "q32", "q58", "q92", "q94", "q95")},
+    "q21": (INT_DIV, sub(r"then inv_after / inv_before", "then cast(inv_after as decimal(7,2)) / inv_before")),
+    "q34": (INT_DIV, sub(r"then household_demographics\.hd_dep_count/",
+                         "then cast(household_demographics.hd_dep_count as decimal(7,2))/")),
+    "q73": (INT_DIV, sub(r"household_demographics\.hd_dep_count/",
+                         "cast(household_demographics.hd_dep_count as decimal(7,2))/")),
+    "q78": (INT_DIV, sub(r"round\(ss_qty/", "round(cast(ss_qty as decimal(10,2))/")),
+    "q83": ("string literals compared with a date column are wrapped in cast(... as date) (no implicit "
+            "varchar-to-date coercion in Trino); " + INT_DIV,
+            lambda q: re.sub(r"(\w+_item_qty)/\(sr_item_qty\+", r"\1/(cast(sr_item_qty as decimal(9,4))+",
+                             cast_date_literals(q))),
     "q72": ("date + integer is not defined in Trino; written as date + interval 'N' day",
             lambda s: re.sub(r"(d1\.d_date)\s*\+\s*(\d+)\b", r"\1 + interval '\2' day", s)),
     # The template's ORDER BY references v1.<col> outside the scope where v1 is visible.
