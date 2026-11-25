@@ -249,7 +249,7 @@ function openQuery(qid) {
   BL.chart(document.getElementById('runsChart'), {type: 'scatter', data: {datasets: D.configs.map((c, i) => ({label: label(c),
       data: (q.cells[c.id]?.values?.[mk.key]?.runs || []).map((v, j) => ({x: i + 1 + (j - 2) * 0.05, y: v})), backgroundColor: color[c.id], pointRadius: 5}))},
     options: {maintainAspectRatio: false, plugins: {tooltip: {callbacks: {label: ctx => `${ctx.dataset.label}: ${fmt(ctx.raw.y, mk.kind)}`}}},
-      scales: {x: {min: 0.5, max: D.configs.length + 0.5, ticks: {stepSize: 1, callback: v => D.configs[v - 1]?.id ?? ''}}, y: {beginAtZero: true, ticks: {callback: v => fmt(v, mk.kind)}}}}});
+      scales: {x: {min: 0.5, max: D.configs.length + 0.5, afterBuildTicks: ax => { ax.ticks = D.configs.map((c, i) => ({value: i + 1})); }, ticks: {callback: v => D.configs[v - 1]?.id ?? ''}, grid: {display: false}}, y: {beginAtZero: true, ticks: {callback: v => fmt(v, mk.kind)}}}}});
   document.getElementById('drawer').classList.add('open');
 }
 function closeDrawer() { document.getElementById('drawer').classList.remove('open'); }

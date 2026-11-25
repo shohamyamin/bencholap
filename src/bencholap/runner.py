@@ -13,11 +13,13 @@ from typing import Any
 from . import __version__, benchmarks, dataset, machine, stack, validate
 from .engines import get as get_engine
 from .engines.base import ResolvedTarget
+from .plans import plan_hash
 from .runconfig import RunConfig, merged_overrides
 from .stats import summarize
 from .util import PACKAGE_DIR, log, run, sha256_text, stable_hash, write_json
 
 RESULTS_SCHEMA_VERSION = 1
+RESULT_ROWS_KEPT = 300
 
 
 
@@ -26,13 +28,6 @@ def _harness_info() -> dict:
     dirty = run(["git", "-C", str(PACKAGE_DIR), "status", "--porcelain"], capture=True, check=False)
     return {"version": __version__, "commit": (out.stdout or "").strip() or None,
             "dirty": bool((dirty.stdout or "").strip())}
-
-
-def normalize_plan(text: str) -> str:
-    lines = [ln for ln in text.splitlines() if "Estimates:" not in ln]
-    # Trino symbol names carry generated numeric suffixes (sum_123); they change without the
-    # plan shape changing.
-    return re.sub(r"\b([a-z_]+)_\d+\b", r"\1", "\n".join(lines))
 
 
 def _sum_stats(parts: list[dict]) -> dict:
@@ -99,7 +94,7 @@ def _capture_plan(session, q: benchmarks.Query) -> dict | None:
     if not texts:
         return None
     text = "\n\n".join(texts)
-    return {"hash": sha256_text(normalize_plan(text))[:16], "text": text}
+    return {"hash": plan_hash(text), "text": text}
 
 
 def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
@@ -172,6 +167,8 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
                             rows = [r for rs in result_sets for r in rs]
                             rec.result = {"rows": len(rows), "fingerprint": validate.fingerprint(rows),
                                           "sample": [[validate.norm_cell(c) for c in r] for r in rows[:3]]}
+                            if len(rows) <= RESULT_ROWS_KEPT:  # full result for diagnosing mismatches
+                                rec.result["data"] = [[validate.norm_cell(c) for c in r] for r in rows]
                             rec.validation = validate.validate(bench, qid, cfg.scale_factor, result_sets)
                             if rec.validation["status"] == "mismatch":
                                 rec.status = "wrong_result"

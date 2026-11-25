@@ -11,6 +11,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .. import stats
+from ..plans import query_plan_hash
 from ..util import read_json
 
 TEMPLATES = Path(__file__).with_name("templates")
@@ -86,7 +87,7 @@ def analyze(result: dict, baseline: str | None = None) -> dict:
                 "input_bytes": _median(q, "physical_input_bytes"),
                 "input_rows": _median(q, "physical_input_positions"),
                 "peak_mem": _median(q, "peak_user_memory_reservation_bytes"),
-                "plan_hash": (q.get("plan") or {}).get("hash"),
+                "plan_hash": query_plan_hash(q),
                 "fingerprint": (q.get("result") or {}).get("fingerprint"),
                 "override": q.get("override"),
             }
@@ -95,7 +96,7 @@ def analyze(result: dict, baseline: str | None = None) -> dict:
                 cell["cpu_ratio"] = stats.ratio_ci(_measured(bq, "total_cpu_ms"), _measured(q, "total_cpu_ms"))
                 bi, hi = _median(bq, "physical_input_bytes"), cell["input_bytes"]
                 cell["input_ratio"] = (hi / bi) if bi and hi is not None else None
-                bp = (bq.get("plan") or {}).get("hash")
+                bp = query_plan_hash(bq)
                 cell["plan_changed"] = bool(bp and cell["plan_hash"] and bp != cell["plan_hash"])
                 r = cell["ratio"]
                 if r and r["significant"] and abs(r["ratio"] - 1) >= SIGNIFICANT_CHANGE:
@@ -332,7 +333,7 @@ def payload(result: dict, a: dict) -> dict:
                 "validation": (q.get("validation") or {}).get("status"),
                 "validation_detail": (q.get("validation") or {}).get("detail"),
                 "override": (q.get("override") or {}).get("reason"),
-                "plan_hash": (q.get("plan") or {}).get("hash"),
+                "plan_hash": query_plan_hash(q),
                 "plan_changed": cell.get("plan_changed", False),
                 "rows": (q.get("result") or {}).get("rows"),
                 "values": values, "ratios": ratios,

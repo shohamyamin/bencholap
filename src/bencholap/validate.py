@@ -60,7 +60,7 @@ def _cells_equal(actual: Any, expected: str | None) -> bool:
         return e is not None and abs(actual - e) <= max(ABS_TOL, REL_TOL * abs(e))
     if isinstance(actual, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", actual):
         return expected.startswith(actual)
-    return actual == expected
+    return " ".join(str(actual).split()) == " ".join(expected.split())
 
 
 def _rows_equal(a: list[Any], e: list[str | None]) -> bool:
@@ -69,24 +69,70 @@ def _rows_equal(a: list[Any], e: list[str | None]) -> bool:
 
 _ROWCOUNT = re.compile(r"^\(\d+ rows?\)$|^\d+ rows? selected\.?$|^Elapsed:", re.IGNORECASE)
 _SEPARATOR = re.compile(r"^[-|+ \t]+$")
+_DASHES = re.compile(r"-+")
+_NOISE = re.compile(r"^(?:-+ OUTPUT Query \d+|INSERT \d+ \d+|(?:CREATE|DROP|SELECT) \d*)\s*$")
+
+
+def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
+    """Assign each whitespace-separated token to the column it starts in. Some answer files
+    are off by one character after tab expansion, so a token starting one position before
+    a column belongs to that column."""
+    cells = [[] for _ in spans]
+    starts = [a for a, _ in spans]
+    for m in re.finditer(r"\S+", line):
+        k = max((j for j, a in enumerate(starts) if a <= m.start() + 1), default=0)
+        cells[k].append(m.group(0))
+    return [" ".join(c) for c in cells]
+
+
+def _null(c: str) -> str | None:
+    c = c.strip()
+    return None if c in ("", "%") else c   # some SQL*Plus answer files print NULL as "%"
 
 
 def parse_answer(path: Path, fmt: str) -> list[list[str | None]]:
-    """Parse an answer file. TPC-DS files for two-statement queries hold two result sets,
-    each with its own header and a "N rows selected." trailer."""
+    """Parse an official answer file.
+
+    TPC-H files and some TPC-DS files are pipe separated. Most TPC-DS files are SQL*Plus
+    output: a header line, a dashed line whose dash groups give the column positions
+    (after expanding tabs), records wrapped over several physical lines when they are wide
+    (one header/dash pair per physical line), and a "N rows selected." trailer per result
+    set (two-statement queries have two result sets).
+    """
+    lines = [ln.expandtabs(8) for ln in path.read_text(errors="replace").splitlines()]
     rows: list[list[str | None]] = []
-    expect_header = True
-    for line in path.read_text(errors="replace").splitlines():
-        if not line.strip() or _SEPARATOR.match(line):
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip() or _ROWCOUNT.match(line.strip()) or _NOISE.match(line.strip()):
+            i += 1
             continue
-        if _ROWCOUNT.match(line.strip()):
-            expect_header = True
+        # header line followed by a dash line: SQL*Plus block (possibly several pairs)
+        segments: list[list[tuple[int, int]]] = []
+        while i + 1 < len(lines) and lines[i].strip() and "|" not in lines[i] \
+                and _SEPARATOR.match(lines[i + 1]) and "-" in lines[i + 1]:
+            segments.append([(m.start(), m.end()) for m in _DASHES.finditer(lines[i + 1])])
+            i += 2
+        if segments:
+            record: list[str | None] = []
+            part = 0
+            while i < len(lines) and not _ROWCOUNT.match(lines[i].strip()):
+                ln = lines[i]
+                i += 1
+                if not ln.strip() and part == 0:
+                    continue
+                record += [_null(c) for c in _fixed_width_cells(ln, segments[part])]
+                part += 1
+                if part == len(segments):
+                    rows.append(record)
+                    record, part = [], 0
             continue
-        cells = [c.strip() for c in line.split("|")] if "|" in line else [line.strip()]
-        if expect_header:
-            expect_header = False
-            continue
-        rows.append([c if c != "" else None for c in cells])
+        # pipe separated: header line, optional separator, data until a blank/trailer line
+        i += 1  # header
+        while i < len(lines) and lines[i].strip() and not _ROWCOUNT.match(lines[i].strip()):
+            if not _SEPARATOR.match(lines[i]):
+                rows.append([_null(c) for c in lines[i].split("|")])
+            i += 1
     return rows
 
 
