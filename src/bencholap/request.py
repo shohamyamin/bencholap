@@ -127,8 +127,11 @@ def to_run_config(req: Request) -> dict:
     targets = []
     for i, t in enumerate(req.targets):
         short = re.sub(r"[^A-Za-z0-9._-]+", "-", t.split("@")[-1].split("/")[-1].split(":")[-1])[:30]
-        role = "baseline" if i == 0 else ("change" if i == 1 else f"target{i}")
-        targets.append({"name": f"{role}-{short}", "source": t})
+        if req.kind in ("sweep", "release") and re.fullmatch(r"\d+", t):
+            name = f"trino-{t}"
+        else:
+            name = ("baseline" if i == 0 else "change" if i == 1 else f"target{i}") + f"-{short}"
+        targets.append({"name": name, "source": t})
     d = {
         "name": req.title or " vs ".join(req.targets),
         "kind": req.kind,
@@ -194,7 +197,8 @@ def describe(req: Request) -> str:
     lines = ["| | |", "|---|---|"]
     roles = ["baseline", "change"] + [f"target {i}" for i in range(3, 10)]
     for role, t in zip(roles, req.targets):
-        lines.append(f"| {role} | `{t}` |")
+        shown = t[:120].replace("|", "\\|")  # keep the Markdown table intact
+        lines.append(f"| {role} | `{shown}` |")
     lines.append(f"| benchmark | {req.benchmark} SF{req.scale_factor} |")
     if not req.errors:
         try:

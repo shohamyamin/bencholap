@@ -71,10 +71,26 @@ class QueryRecord:
         }
 
 
+# Errors that only mean "the cluster is still settling" (seen right after startup on some
+# versions); the statement is retried and the attempt is not measured.
+TRANSIENT_ERRORS = ("NO_NODES_AVAILABLE",)
+
+
+def _execute_statement(session, stmt: str):
+    for attempt in range(6):
+        try:
+            return session.execute(stmt)
+        except Exception as e:
+            if attempt == 5 or not any(t in str(e) for t in TRANSIENT_ERRORS):
+                raise
+            log.info("transient error (%s), retrying", str(e)[:120])
+            time.sleep(5)
+
+
 def _execute_query(session, q: benchmarks.Query) -> tuple[float, dict, list[list[tuple]], list[str]]:
     wall, stats, result_sets, ids = 0.0, [], [], []
     for stmt in q.statements:
-        r = session.execute(stmt)
+        r = _execute_statement(session, stmt)
         wall += r.wall_ms
         stats.append(r.engine_stats)
         if r.query_id:

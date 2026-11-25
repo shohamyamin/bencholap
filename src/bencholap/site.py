@@ -86,7 +86,10 @@ def _summary(r: dict, a: dict) -> dict:
                      "total_ms": t.get("total_ms"), "cpu_ms": t.get("total_cpu_ms"),
                      "geomean": t.get("geomean_ratio") if c["id"] != base else None,
                      "failed": t.get("error", 0) + t.get("wrong_result", 0)})
-    main = cfgs[1] if len(cfgs) > 1 else None
+    if len(cfgs) < 2:
+        main = None
+    else:  # sweeps: newest version vs oldest
+        main = cfgs[-1] if rc.get("kind") == "sweep" else cfgs[1]
     ch = [x for x in a["changes"] if main and x["config"] == main["id"]]
     return {
         "run_id": r["run_id"], "name": r["name"], "started_at": r["started_at"],

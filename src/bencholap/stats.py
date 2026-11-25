@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 BOOTSTRAP_SAMPLES = 2000
 SEED = 1234
+MIN_SAMPLES = 3
 
 
 def summarize(values: Sequence[float]) -> dict | None:
@@ -34,7 +35,8 @@ def ratio_ci(base: Sequence[float], head: Sequence[float], level: float = 0.95) 
     if not b or not h or statistics.median(b) == 0:
         return None
     point = statistics.median(h) / statistics.median(b)
-    if len(b) < 2 or len(h) < 2:
+    if len(b) < MIN_SAMPLES or len(h) < MIN_SAMPLES:
+        # too few runs for a meaningful interval
         return {"ratio": point, "low": None, "high": None, "significant": False}
     rng = random.Random(SEED)
     samples = []

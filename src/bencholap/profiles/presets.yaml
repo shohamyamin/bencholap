@@ -1,8 +1,8 @@
 # How many times each query runs. Requests pick one of these by name.
 quick:
-  description: smoke check (1 warmup, 2 measured runs, 1 round)
+  description: smoke check (1 warmup, 3 measured runs, 1 round)
   warmup: 1
-  repetitions: 2
+  repetitions: 3
   rounds: 1
 standard:
   description: default (1 warmup, 5 measured runs, targets alternate in 2 rounds)

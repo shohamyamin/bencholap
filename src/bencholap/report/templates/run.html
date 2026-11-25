@@ -72,7 +72,9 @@ const M = Object.fromEntries(D.metrics.map(m => [m.key, m]));
 const color = Object.fromEntries(D.configs.map((c, i) => [c.id, COLORS[i % COLORS.length]]));
 const others = D.configs.filter(c => c.id !== D.baseline);
 const label = c => c.id + (c.version ? ` (${c.version})` : '');
-const state = {metric: 'wall_ms', cmp: others[0]?.id, view: 'change', totalMetric: 'wall_ms'};
+// sweeps compare the newest version with the oldest; other runs the first change with the baseline
+const mainCfg = D.meta.kind === 'sweep' ? others[others.length - 1] : others[0];
+const state = {metric: 'wall_ms', cmp: mainCfg?.id, view: 'change', totalMetric: 'wall_ms'};
 
 // ---------- header
 const m = D.meta;
@@ -91,7 +93,7 @@ if (D.failed_configs.length) document.getElementById('warnings').innerHTML += D.
 (function verdict() {
   const el = document.getElementById('verdict');
   if (!others.length) { el.innerHTML = ''; return; }
-  const c = others[0], t = D.totals[c.id];
+  const c = mainCfg, t = D.totals[c.id];
   const g = t.geomean_ratio;
   const sig = D.changes.filter(x => x.config === c.id);
   const better = sig.filter(x => x.ratio < 1).length, worse = sig.filter(x => x.ratio > 1).length;
@@ -139,7 +141,7 @@ drawTotals();
 // ---------- per-query chart
 const metricSel = document.getElementById('metricSel'), cmpSel = document.getElementById('cmpSel');
 metricSel.innerHTML = D.metrics.map(x => `<option value="${x.key}">${esc(x.label)}</option>`).join('');
-cmpSel.innerHTML = others.map(c => `<option value="${esc(c.id)}">vs ${esc(label(c))}</option>`).join('') || '<option>(single configuration)</option>';
+cmpSel.innerHTML = others.map(c => `<option value="${esc(c.id)}" ${c.id === state.cmp ? 'selected' : ''}>vs ${esc(label(c))}</option>`).join('') || '<option>(single configuration)</option>';
 const views = [['change', '% change vs baseline'], ['absolute', 'absolute values']];
 function drawViewChips() {
   const el = document.getElementById('viewChips');

@@ -73,7 +73,7 @@ body:
     attributes:
       label: Repetitions
       options:
-        - quick (1 warmup, 2 runs)
+        - quick (1 warmup, 3 runs)
         - standard (1 warmup, 5 runs, 2 alternating rounds)
         - thorough (2 warmups, 5 runs, 4 alternating rounds)
       default: 1
