@@ -77,6 +77,9 @@ def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
     """Assign each whitespace-separated token to the column it starts in. Some answer files
     are off by one character after tab expansion, so a token starting one position before
     a column belongs to that column."""
+    chunks = re.split(r"\s{2,}", line.strip())
+    if len(chunks) == len(spans):  # every column present and separated: positions do not matter
+        return chunks
     cells = [[] for _ in spans]
     starts = [a for a, _ in spans]
     for m in re.finditer(r"\S+", line):
@@ -99,7 +102,12 @@ def parse_answer(path: Path, fmt: str) -> list[list[str | None]]:
     (one header/dash pair per physical line), and a "N rows selected." trailer per result
     set (two-statement queries have two result sets).
     """
-    lines = [ln.expandtabs(8) for ln in path.read_text(errors="replace").splitlines()]
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")  # some answer files are Latin-1 (e.g. "CÔTE D'IVOIRE")
+    lines = [ln.expandtabs(8) for ln in text.splitlines()]
     rows: list[list[str | None]] = []
     i = 0
     while i < len(lines):
@@ -116,8 +124,11 @@ def parse_answer(path: Path, fmt: str) -> list[list[str | None]]:
         if segments:
             record: list[str | None] = []
             part = 0
-            while i < len(lines) and not _ROWCOUNT.match(lines[i].strip()):
+            while i < len(lines) and not _ROWCOUNT.match(lines[i].strip()) and not _NOISE.match(lines[i].strip()):
                 ln = lines[i]
+                if part == 0 and ln.strip() and i + 1 < len(lines) and _SEPARATOR.match(lines[i + 1]) \
+                        and "-" in lines[i + 1]:
+                    break  # header of the next result set
                 i += 1
                 if not ln.strip() and part == 0:
                     continue
@@ -168,14 +179,26 @@ def validate(bench: Benchmark, qid: str, sf: str, result_sets: list[list[tuple]]
     if not files:
         return {"status": "no-reference"}
     rows = [r for rs in result_sets for r in rs]
+    exception = (bench.answer_exceptions or {}).get(qid)
+    if exception and exception.get("skip"):
+        return {"status": "no-reference", "detail": "official answer not usable: " + " ".join(exception["reason"].split())}
+    drop = set(exception.get("ignore_columns", [])) if exception else set()
     last = None
     for f in files:
         try:
             expected = parse_answer(f, bench.answers_format or "")
         except Exception as e:  # noqa: BLE001
             return {"status": "unparsable-reference", "reference": f.name, "detail": str(e)}
-        res = compare(rows, expected)
+        if drop:
+            expected = [[c for k, c in enumerate(r) if k not in drop] for r in expected]
+            actual = [tuple(c for k, c in enumerate(r) if k not in drop) for r in rows]
+        else:
+            actual = rows
+        res = compare(actual, expected)
         res["reference"] = f.name
+        if exception and res["status"] == "match":
+            res["detail"] = (f"columns {sorted(k + 1 for k in drop)} not compared: {exception['reason']}"
+                             + (f"; {res['detail']}" if res.get("detail") else ""))
         if res["status"] == "match":
             return res
         last = res

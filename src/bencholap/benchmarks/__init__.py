@@ -82,6 +82,7 @@ class Benchmark:
     layouts: dict[str, Layout]
     generator: dict
     supported_sf: tuple[str, ...] = ()
+    answer_exceptions: dict | None = None
 
     @property
     def dir(self) -> Path:
@@ -157,6 +158,7 @@ def load(name: str) -> Benchmark:
         answers_format=answers.get("format"), default_layout=d["default_layout"], layouts=layouts,
         generator=d.get("generator", {}),
         supported_sf=tuple(format_sf(x) for x in d["scale_factors"]),
+        answer_exceptions=answers.get("exceptions"),
     )
 
 
