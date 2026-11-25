@@ -1,0 +1,32 @@
+-- Trino override of q94 (canonical: queries/any/q94.sql)
+-- reason: string literal compared with a date column; Trino has no implicit varchar-to-date coercion, so the literal is wrapped in cast(... as date).
+-- compare: trinodb/trino testing/trino-benchmark-queries/src/main/resources/sql/trino/tpcds/q94.sql
+-- TPC-DS Q94: kit template query94.tpl with the specification's (v2.10.0, Appendix B) qualification substitution parameters
+-- tpcds-kit commit 5a3a81796992b725c2a8b216767e142609966752
+-- normalized: '+ N days' -> '+ interval 'N' day'
+select
+   count(distinct ws_order_number) as "order count"
+  ,sum(ws_ext_ship_cost) as "total shipping cost"
+  ,sum(ws_net_profit) as "total net profit"
+from
+   web_sales ws1
+  ,date_dim
+  ,customer_address
+  ,web_site
+where
+    d_date between cast('1999-2-01' as date) and
+           (cast('1999-2-01' as date) + interval '60' day)
+and ws1.ws_ship_date_sk = d_date_sk
+and ws1.ws_ship_addr_sk = ca_address_sk
+and ca_state = 'IL'
+and ws1.ws_web_site_sk = web_site_sk
+and web_company_name = 'pri'
+and exists (select *
+            from web_sales ws2
+            where ws1.ws_order_number = ws2.ws_order_number
+              and ws1.ws_warehouse_sk <> ws2.ws_warehouse_sk)
+and not exists(select *
+               from web_returns wr1
+               where ws1.ws_order_number = wr1.wr_order_number)
+order by count(distinct ws_order_number)
+limit 100;

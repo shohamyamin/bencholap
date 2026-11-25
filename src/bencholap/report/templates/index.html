@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}bencholap · query engine benchmarks{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between;align-items:flex-end">
+  <div>
+    <h1>Query engine benchmarks</h1>
+    <div class="muted">TPC-H and TPC-DS derived workloads on shared Iceberg tables. Every run records the exact
+      engine build, its effective configuration, the dataset and the machine, and checks results against the official answers.</div>
+  </div>
+</div>
+
+<div class="grid g4" style="margin-top:18px">
+  <div class="card stat"><div class="v">{{ stats.runs }}</div><div class="l">runs</div></div>
+  <div class="card stat"><div class="v">{{ stats.releases }}</div><div class="l">Trino releases tracked</div></div>
+  <div class="card stat"><div class="v">{{ stats.queries }}</div><div class="l">query comparisons</div></div>
+  <div class="card stat"><div class="v">{{ runs[0].started_at[:10] if runs else '–' }}</div><div class="l">latest run</div></div>
+</div>
+
+{% if repo %}
+<div class="card" style="margin-top:18px;display:flex;gap:18px;align-items:center;justify-content:space-between">
+  <div><h3 style="margin:0">Benchmark your change</h3>
+  <div class="small muted">Open an issue with the form: baseline, your branch / PR / image, benchmark and a cluster profile.
+    A maintainer approves it, the run starts on GitHub, and the results are posted back to the issue and published here.</div></div>
+  <a class="chip on" style="padding:9px 16px;font-size:13px" href="https://github.com/{{ repo }}/issues/new?template=benchmark.yml">Request a benchmark</a>
+</div>
+{% endif %}
+
+{% if latest_release %}
+<h2>Latest release</h2>
+<a href="runs/{{ latest_release.run_id }}/index.html" style="text-decoration:none;color:inherit">
+<div class="card verdict {{ 'good' if latest_release.geomean and latest_release.geomean < 0.98 else 'bad' if latest_release.geomean and latest_release.geomean > 1.02 else '' }}">
+  <div class="big">{% if latest_release.geomean %}{{ '%+.1f%%'|format((latest_release.geomean - 1) * 100) }}{% else %}–{% endif %}</div>
+  <div><div><b>{{ latest_release.configs[-1].id }}</b> vs <b>{{ latest_release.configs[0].id }}</b> · {{ latest_release.benchmark }} SF{{ latest_release.scale_factor }} · {{ latest_release.profile or '' }}</div>
+  <div class="small">{{ latest_release.improvements }} significant improvement(s), {{ latest_release.regressions }} regression(s), {{ latest_release.failed }} failed · {{ latest_release.started_at }}</div></div>
+</div></a>
+{% endif %}
+
+<h2>Release history <span class="hint">sum of per-query medians over queries common to all versions; one chart per machine class</span></h2>
+{% if not series %}<div class="card empty">No release measurements yet. Run the <b>sweep</b> workflow to measure every 10th release.</div>{% endif %}
+<div class="grid g2" id="series"></div>
+
+<h2>Recent runs <a class="small" href="runs.html">all runs →</a></h2>
+<table class="t"><thead><tr><th>run</th><th>benchmark</th><th>profile</th><th class="num">change</th><th class="num">improved / regressed</th><th>started</th></tr></thead><tbody>
+{% for s in runs[:12] %}
+<tr class="click" onclick="location.href='runs/{{ s.run_id }}/index.html'">
+  <td><a href="runs/{{ s.run_id }}/index.html"><b>{{ s.name }}</b></a><div class="tiny muted">{{ s.kind }}{% if s.issue %} · issue #{{ s.issue }}{% endif %}{% if s.requested_by %} · by {{ s.requested_by }}{% endif %}</div></td>
+  <td>{{ s.benchmark }} SF{{ s.scale_factor }}</td><td><span class="pill info">{{ s.profile or '–' }}</span></td>
+  <td class="num">{% if s.geomean %}<span class="delta {{ 'down' if s.geomean < 0.98 else 'up' if s.geomean > 1.02 else 'same' }}">{{ '%+.1f%%'|format((s.geomean - 1) * 100) }}</span>{% else %}–{% endif %}</td>
+  <td class="num"><span class="good">{{ s.improvements }}</span> / <span class="bad">{{ s.regressions }}</span>{% if s.failed %} <span class="pill err">{{ s.failed }} failed</span>{% endif %}</td>
+  <td class="small muted">{{ s.started_at }}</td></tr>
+{% else %}<tr><td colspan="6" class="empty">No runs yet.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}
+{% block scripts %}
+<script>
+const S = {{ series_json|safe }};
+const el = document.getElementById('series');
+S.forEach((s, i) => {
+  const card = document.createElement('div'); card.className = 'card';
+  card.innerHTML = `<h3>${BL.esc(s.benchmark)} SF${BL.esc(s.scale_factor)} · ${BL.esc(s.layout)}</h3>
+    <div class="tiny muted">${BL.esc(s.machine)} · ${s.common_queries} common queries · ${s.same_run ? 'all versions in one run' : '<span class="warn">versions from different runs on the same machine class</span>'}</div>
+    <div class="chart" style="height:240px;margin-top:8px"></div>`;
+  el.appendChild(card);
+  BL.chart(card.querySelector('.chart'), {type: 'line', data: {labels: s.points.map(p => p.version), datasets: [
+      {label: 'wall time', data: s.points.map(p => p.total_ms), borderColor: '#4c6ef5', backgroundColor: 'rgba(76,110,245,.12)', fill: true, tension: .25, pointRadius: 4},
+      {label: 'CPU time', data: s.points.map(p => p.cpu_ms), borderColor: '#f59f00', tension: .25, pointRadius: 3, borderDash: [4, 3]}]},
+    options: {maintainAspectRatio: false, onClick: (e, els) => els.length && (location.href = `runs/${s.points[els[0].index].run_id}/index.html`),
+      plugins: {tooltip: {callbacks: {label: ctx => `${ctx.dataset.label}: ${BL.fmt(ctx.raw, 'time')}`}}},
+      scales: {y: {beginAtZero: true, ticks: {callback: v => BL.fmt(v, 'time')}}, x: {title: {display: true, text: 'Trino version'}}}}});
+});
+</script>
+{% endblock %}

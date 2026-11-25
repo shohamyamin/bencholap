@@ -1,0 +1,19 @@
+name: k8s-4-workers
+title: Kubernetes, coordinator + 4 workers (planned)
+description: >
+  Trino deployed with the official Helm chart on a dedicated Kubernetes cluster
+  (5 nodes, 16 vCPU / 64 GB each), data in S3 with an Iceberg REST catalog. Waiting for a sponsor.
+status: planned
+runner: bencholap-k8s
+cluster:
+  type: command
+  workers: 4
+  url: http://bencholap-trino.bencholap.svc.cluster.local:8080
+  deploy: deploy/kubernetes/deploy.sh
+  teardown: helm uninstall bencholap --namespace bencholap --wait
+  startup_timeout: 900
+resources: {memory: 64Gi, cpus: 16}
+scale_factors: [10, 100, 1000]
+max_targets: 4
+stack: external
+hardware: {nodes: 5, vcpus_per_node: 16, memory_gb_per_node: 64, kind: dedicated Kubernetes nodes}

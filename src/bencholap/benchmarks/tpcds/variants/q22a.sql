@@ -1,0 +1,38 @@
+-- TPC-DS approved query variant query22a.tpl with qualification parameters of query22
+-- tpcds-kit commit 5a3a81796992b725c2a8b216767e142609966752
+with results as
+(select  i_product_name
+             ,i_brand
+             ,i_class
+             ,i_category
+             ,inv_quantity_on_hand qoh
+       from inventory
+           ,date_dim
+           ,item
+       where  inv_date_sk=d_date_sk
+              and inv_item_sk=i_item_sk
+              and d_month_seq between 1200 and 1200 + 11
+),
+results_rollup as
+(select i_product_name, i_brand, i_class, i_category,avg(qoh) qoh
+from results
+group by i_product_name,i_brand,i_class,i_category
+union all
+select i_product_name, i_brand, i_class, null i_category,avg(qoh) qoh
+from results
+group by i_product_name,i_brand,i_class
+union all
+select i_product_name, i_brand, null i_class, null i_category,avg(qoh) qoh
+from results
+group by i_product_name,i_brand
+union all
+select i_product_name, null i_brand, null i_class, null i_category,avg(qoh)  qoh
+from results
+group by i_product_name
+union all
+select null i_product_name, null i_brand, null i_class, null i_category,avg(qoh) qoh
+from results)
+ select  i_product_name, i_brand, i_class, i_category,qoh
+      from results_rollup
+      order by qoh, i_product_name, i_brand, i_class, i_category
+limit 100;

@@ -1,0 +1,10 @@
+# Very small run for checking a setup (a few seconds of query time).
+name: smoke
+benchmark: tpch
+scale_factor: 1
+queries: [q01, q06, q15]
+warmup: 0
+repetitions: 1
+resources: {memory: 4g, cpus: 2}
+targets:
+  - {name: latest, source: latest}

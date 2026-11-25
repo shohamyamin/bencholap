@@ -1,0 +1,73 @@
+# Version-specific Trino configuration.
+#
+# Trino renames and removes properties between releases, so the configuration needed to
+# reach the same catalog differs per version. Each catalog has "base" properties plus
+# "when" entries selected by PEP 440 style version specifiers on the numeric Trino version
+# (485-SNAPSHOT counts as 485). Later matching entries override earlier ones. Run configs
+# can add or remove (null) properties on top, per target and per variant.
+#
+# Placeholders: {s3_endpoint} {s3_access_key} {s3_secret_key} {s3_region} {catalog_uri}
+#               {warehouse} {raw_bucket}
+
+# The Iceberg REST catalog type first appears in the Trino 405 documentation.
+min_version: 405
+
+catalogs:
+  iceberg:
+    base:
+      connector.name: iceberg
+      iceberg.catalog.type: rest
+      iceberg.rest-catalog.uri: "{catalog_uri}"
+      iceberg.file-format: PARQUET
+    when:
+      # Legacy (Hadoop based) S3 support. The native S3 file system docs start at 440.
+      - versions: "<440"
+        properties:
+          hive.s3.endpoint: "{s3_endpoint}"
+          hive.s3.aws-access-key: "{s3_access_key}"
+          hive.s3.aws-secret-key: "{s3_secret_key}"
+          hive.s3.path-style-access: "true"
+          hive.s3.ssl.enabled: "false"
+      # Native S3 file system. Required since 458 (legacy deactivated by default).
+      - versions: ">=440,<481"
+        properties: &native_s3
+          fs.native-s3.enabled: "true"
+          s3.endpoint: "{s3_endpoint}"
+          s3.region: "{s3_region}"
+          s3.path-style-access: "true"
+          s3.aws-access-key: "{s3_access_key}"
+          s3.aws-secret-key: "{s3_secret_key}"
+      # 481 renamed fs.native-s3.enabled to fs.s3.enabled and removed legacy S3 support.
+      - versions: ">=481"
+        properties:
+          <<: *native_s3
+          fs.native-s3.enabled: null
+          fs.s3.enabled: "true"
+
+  # Used only by the dataset loader to read the generated Parquet files.
+  staging:
+    base:
+      connector.name: hive
+      hive.metastore: file
+      hive.metastore.catalog.dir: "s3://{raw_bucket}/hive-metastore"
+    when:
+      - versions: "<440"
+        properties:
+          hive.s3.endpoint: "{s3_endpoint}"
+          hive.s3.aws-access-key: "{s3_access_key}"
+          hive.s3.aws-secret-key: "{s3_secret_key}"
+          hive.s3.path-style-access: "true"
+          hive.s3.ssl.enabled: "false"
+      - versions: ">=440,<481"
+        properties: *native_s3
+      - versions: ">=481"
+        properties:
+          <<: *native_s3
+          fs.native-s3.enabled: null
+          fs.s3.enabled: "true"
+
+# Overrides applied to the image's own /etc/trino/config.properties (kept as shipped
+# otherwise, so each version runs with its default settings).
+config:
+  base: {}
+  when: []

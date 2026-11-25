@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --extra dev
+      - run: uv run ruff check src scripts
+      - name: CLI loads and benchmark definitions parse
+        run: |
+          uv run bencholap --help
+          uv run bencholap layouts
+          uv run bencholap profiles list
+          uv run bencholap profiles check
+
+  # Plans every canonical query (with overrides) on the newest Trino against empty tables.
+  # Cheap (no data), catches queries that need an override after a Trino release.
+  sql-check:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        benchmark: [tpch, tpcds]
+    env:
+      BENCHOLAP_HOME: ${{ github.workspace }}/.bencholap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run bencholap check-sql -b ${{ matrix.benchmark }} -t latest

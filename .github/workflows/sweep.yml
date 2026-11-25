@@ -1,0 +1,57 @@
+# Benchmark a series of Trino releases (newest, newest-N, ...) in ONE job on one machine,
+# so all versions are comparable with each other. Maintainers only (workflow_dispatch).
+name: sweep
+
+on:
+  workflow_dispatch:
+    inputs:
+      every:
+        description: Step between versions
+        default: "10"
+      from:
+        description: Oldest version (empty = oldest supported)
+        default: ""
+      to:
+        description: Newest version
+        default: latest
+      benchmark:
+        type: choice
+        options: [tpch, tpcds]
+        default: tpch
+      profile:
+        type: choice
+        options: [gh-standard, gh-distributed]
+        default: gh-standard
+      preset:
+        type: choice
+        options: [quick, standard, thorough]
+        default: quick
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      request: ${{ steps.r.outputs.request }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - id: r
+        env:
+          EVERY: ${{ inputs.every }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          BENCH: ${{ inputs.benchmark }}
+          PROFILE: ${{ inputs.profile }}
+          PRESET: ${{ inputs.preset }}
+        run: uv run bencholap request sweep --every "$EVERY" ${FROM:+--from "$FROM"} --to "$TO" -b "$BENCH" --profile "$PROFILE" --preset "$PRESET"
+  run:
+    needs: plan
+    uses: ./.github/workflows/benchmark.yml
+    with: {request: "${{ needs.plan.outputs.request }}"}

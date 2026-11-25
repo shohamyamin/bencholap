@@ -1,0 +1,12 @@
+name: large-vm
+title: Dedicated VM, single node (planned)
+description: >
+  A dedicated 32 vCPU / 128 GB VM registered as a self-hosted runner. Same machine for
+  every run, so results are comparable over time. Waiting for a sponsor.
+status: planned
+runner: bencholap-large-vm
+cluster: {type: docker, workers: 0}
+resources: {memory: 100g}
+scale_factors: [1, 10, 100]
+max_targets: 4
+hardware: {vcpus: 32, memory_gb: 128, kind: dedicated VM}

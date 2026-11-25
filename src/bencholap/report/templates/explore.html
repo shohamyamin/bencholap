@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}bencholap · explore queries{% endblock %}
+{% block content %}
+<h1>Explore queries</h1>
+<div class="muted">Every query of every comparison against its run's baseline. Find the queries a change improved or
+  regressed, across all runs. Negative change is faster.</div>
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h3>Distribution of wall-time changes <span class="tiny muted">(filtered rows)</span></h3><div class="chart" id="hist" style="height:200px"></div></div>
+  <div class="card"><h3>Biggest significant changes <span class="tiny muted">(filtered rows)</span></h3><div class="chart" id="top" style="height:200px"></div></div>
+</div>
+<div class="controls" style="margin-top:14px">
+  <input type="search" id="f" placeholder="query (q01), version, target…" size="30">
+  <select id="bench"><option value="">all benchmarks</option></select>
+  <select id="profile"><option value="">all profiles</option></select>
+  <select id="kind"><option value="">all kinds</option></select>
+  <select id="dir"><option value="">improvements and regressions</option><option value="down">improvements</option><option value="up">regressions</option></select>
+  <label class="chk"><input type="checkbox" id="sig" checked> significant only</label>
+  <label class="chk"><input type="checkbox" id="plan"> plan changed</label>
+  <span class="small muted" id="count"></span>
+</div>
+<div class="tablewrap"><table class="t" id="t"><thead><tr>
+  <th class="sortable" data-key="query">query</th>
+  <th class="sortable" data-key="started_at">run</th>
+  <th class="sortable" data-key="baseline">baseline</th>
+  <th class="sortable" data-key="target">compared</th>
+  <th class="num sortable" data-type="num" data-key="base_ms">baseline</th>
+  <th class="num sortable" data-type="num" data-key="ms">compared</th>
+  <th class="num sortable" data-type="num" data-asc="1" data-key="ratio">wall Δ [95% CI]</th>
+  <th class="num sortable" data-type="num" data-asc="1" data-key="cpu_ratio">CPU Δ</th>
+  <th class="num sortable" data-type="num" data-asc="1" data-key="input_ratio">input Δ</th>
+  <th>notes</th>
+</tr></thead><tbody></tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const Q = {{ rows_json|safe }};
+const {esc, fmt, delta} = BL;
+const sel = (id, key) => { const s = document.getElementById(id); [...new Set(Q.map(r => r[key]).filter(Boolean))].sort().forEach(v => s.add(new Option(v, v))); return s; };
+const bench = sel('bench', 'benchmark'), profile = sel('profile', 'profile'), kind = sel('kind', 'kind');
+const [f, sig, plan, dir] = ['f', 'sig', 'plan', 'dir'].map(id => document.getElementById(id));
+Q.forEach(r => r._text = `${r.query} ${r.baseline} ${r.target} ${r.run_id}`.toLowerCase());
+function rows() {
+  return Q.filter(r => (!bench.value || r.benchmark === bench.value) && (!profile.value || r.profile === profile.value) && (!kind.value || r.kind === kind.value)
+    && (!sig.checked || r.significant) && (!plan.checked || r.plan_changed) && (!dir.value || (dir.value === 'down' ? r.ratio < 1 : r.ratio > 1))
+    && (!f.value || r._text.includes(f.value.toLowerCase())));
+}
+const draw = BL.sortable(document.getElementById('t'), rows, r => `<tr class="click" onclick="location.href='runs/${r.run_id}/index.html'">
+  <td><b>${esc(r.query)}</b><div class="tiny muted">${esc(r.benchmark)} SF${esc(r.sf)}</div></td>
+  <td class="small"><a href="runs/${r.run_id}/index.html">${esc(r.started_at)}</a><div class="tiny muted">${esc(r.kind)} · ${esc(r.profile || '')}</div></td>
+  <td class="small">${esc(r.baseline)}</td><td class="small">${esc(r.target)}</td>
+  <td class="num">${fmt(r.base_ms, 'time')}</td><td class="num">${r.status === 'ok' ? fmt(r.ms, 'time') : `<span class="pill err">${esc(r.status)}</span>`}</td>
+  <td class="num">${delta(r.ratio, r.significant)}${r.low ? ` <span class="ci">[${((r.low - 1) * 100).toFixed(0)}, ${((r.high - 1) * 100).toFixed(0)}]</span>` : ''}</td>
+  <td class="num">${delta(r.cpu_ratio, true)}</td><td class="num">${delta(r.input_ratio, true)}</td>
+  <td>${r.plan_changed ? '<span class="pill warn">plan changed</span>' : ''} ${r.validation === 'mismatch' ? '<span class="pill err">wrong answer</span>' : ''}</td></tr>`,
+  {key: 'ratio', asc: true});
+function charts() {
+  const data = rows().filter(r => r.ratio);
+  const bins = [-50, -30, -20, -10, -5, -2, 2, 5, 10, 20, 30, 50];
+  const labels = ['< -50%', ...bins.slice(1).map((b, i) => `${bins[i]}..${b}%`), '> 50%'];
+  const counts = new Array(labels.length).fill(0);
+  data.forEach(r => { const p = (r.ratio - 1) * 100; let i = bins.findIndex(b => p < b); if (i === -1) i = labels.length - 1; counts[i]++; });
+  BL.chart(document.getElementById('hist'), {type: 'bar', data: {labels, datasets: [{data: counts, borderRadius: 4,
+    backgroundColor: labels.map((l, i) => i < 6 ? '#2f9e44' : i === 6 ? '#adb5bd' : '#e03131')}]}, options: {maintainAspectRatio: false, plugins: {legend: {display: false}}}});
+  const top = data.filter(r => r.significant).sort((a, b) => Math.abs(b.ratio - 1) - Math.abs(a.ratio - 1)).slice(0, 12);
+  BL.chart(document.getElementById('top'), {type: 'bar', data: {labels: top.map(r => `${r.query} · ${r.target.split(' ')[0]}`),
+    datasets: [{data: top.map(r => (r.ratio - 1) * 100), backgroundColor: top.map(r => r.ratio < 1 ? '#2f9e44' : '#e03131'), borderRadius: 4}]},
+    options: {indexAxis: 'y', maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {ticks: {callback: v => v + '%'}}}}});
+}
+const redraw = () => { draw(); charts(); document.getElementById('count').textContent = `${document.querySelectorAll('#t tbody tr.click').length} of ${Q.length} query comparisons`; };
+[f, bench, profile, kind, sig, plan, dir].forEach(e => e.addEventListener('input', redraw));
+redraw();
+</script>
+{% endblock %}

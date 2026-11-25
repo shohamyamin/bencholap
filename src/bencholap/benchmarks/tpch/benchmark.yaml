@@ -1,0 +1,28 @@
+name: tpch
+title: TPC-H (derived)
+# Results are not audited TPC results and must be labelled "derived from TPC-H".
+spec: https://www.tpc.org/tpc_documents_current_versions/pdf/tpc-h_v3.0.1.pdf
+tables: [region, nation, supplier, customer, part, partsupp, orders, lineitem]
+queries: [q01, q02, q03, q04, q05, q06, q07, q08, q09, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19, q20, q21, q22]
+# Canonical queries: qgen -d (spec validation substitution parameters); queries/sfN/ because
+# Q11's fraction depends on the scale factor. Official answer sets exist for SF1 only.
+scale_factors: [1, 10, 30, 100, 300, 1000]
+answers:
+  scale_factor: 1
+  format: tpch
+generator:
+  tool: tpcgen-cli
+  version: "4.0.0"
+
+default_layout: unpartitioned
+layouts:
+  unpartitioned:
+    description: >
+      Unpartitioned, unsorted tables loaded with CREATE TABLE AS SELECT from the generated
+      data, as in Trino's own benchmark setup.
+    validated: true
+    sources:
+      - name: Trino benchto TPC-H schema generation (generate-tpch.py)
+        url: https://github.com/trinodb/trino/blob/master/testing/trino-benchto-benchmarks/generate_schemas/generate-tpch.py
+    analyze: true
+    tables: {}

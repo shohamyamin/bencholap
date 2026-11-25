@@ -1,0 +1,105 @@
+# Benchmark requests filed as issues (template: .github/ISSUE_TEMPLATE/benchmark.yml).
+#
+#  1. Someone opens an issue with the form. This workflow parses and validates it and
+#     comments what would run (or what is wrong).
+#  2. A maintainer (write access) adds the label "benchmark: approved".
+#  3. The benchmark runs; the results are posted to the issue and published on the site.
+#
+# Approval is required because non-release targets build and run code from forks.
+name: issue-benchmark
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  parse:
+    if: contains(github.event.issue.labels.*.name, 'benchmark')
+    runs-on: ubuntu-24.04
+    outputs:
+      status: ${{ steps.req.outputs.status }}
+      request: ${{ steps.req.outputs.request }}
+      approved: ${{ steps.approve.outputs.approved }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Parse issue form
+        id: req
+        continue-on-error: true
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+        run: uv run bencholap request from-issue
+      - name: Comment the parsed request
+        if: github.event.action != 'labeled'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          STATUS: ${{ steps.req.outputs.status }}
+        run: |
+          {
+            echo "<!-- bencholap-request -->"
+            if [ "$STATUS" = "valid" ]; then
+              echo "### Benchmark request"; echo; cat request/request.md; echo
+              echo "A maintainer can start it by adding the label **\`benchmark: approved\`**. Results will be posted here."
+            else
+              echo "### This request cannot run yet"; echo; cat request/request.md; echo
+              echo "Edit the issue to fix the problems above; it is checked again on every edit."
+            fi
+          } > comment.md
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" --jq '[.[] | select(.body | startswith("<!-- bencholap-request -->"))][0].id // empty')
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -F body=@comment.md >/dev/null
+          else
+            gh issue comment "$NUMBER" -R "$GITHUB_REPOSITORY" --body-file comment.md
+          fi
+          if [ "$STATUS" = "valid" ]; then
+            gh issue edit "$NUMBER" -R "$GITHUB_REPOSITORY" --remove-label "benchmark: invalid" || true
+          else
+            gh issue edit "$NUMBER" -R "$GITHUB_REPOSITORY" --add-label "benchmark: invalid" || true
+          fi
+          # an edit after approval needs a new approval
+          if [ "${{ github.event.action }}" = "edited" ]; then
+            gh issue edit "$NUMBER" -R "$GITHUB_REPOSITORY" --remove-label "benchmark: approved" || true
+          fi
+      - name: Check approval
+        id: approve
+        if: "github.event.action == 'labeled' && github.event.label.name == 'benchmark: approved'"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SENDER: ${{ github.event.sender.login }}
+          NUMBER: ${{ github.event.issue.number }}
+          STATUS: ${{ steps.req.outputs.status }}
+        run: |
+          perm=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission)
+          if [[ "$perm" =~ ^(admin|maintain|write)$ ]] && [ "$STATUS" = "valid" ]; then
+            echo "approved=true" >> "$GITHUB_OUTPUT"
+          else
+            gh issue edit "$NUMBER" -R "$GITHUB_REPOSITORY" --remove-label "benchmark: approved" || true
+            gh issue comment "$NUMBER" -R "$GITHUB_REPOSITORY" --body "Not started: approval needs write access to the repository and a valid request (approver: @$SENDER, permission: $perm, request: $STATUS)."
+          fi
+
+  run:
+    needs: parse
+    if: needs.parse.outputs.approved == 'true'
+    uses: ./.github/workflows/benchmark.yml
+    with:
+      request: ${{ needs.parse.outputs.request }}
+    permissions:
+      contents: write
+      issues: write
+      pages: write
+      id-token: write

@@ -1,0 +1,7 @@
+title: Dynamic filtering on and off
+description: Runs every target with its default settings and with dynamic filtering disabled.
+variants:
+  - name: default
+  - name: no-dynamic-filtering
+    description: dynamic filtering disabled
+    session: {enable_dynamic_filtering: false}

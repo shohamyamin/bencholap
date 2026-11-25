@@ -1,0 +1,34 @@
+-- Trino override of q16 (canonical: queries/any/q16.sql)
+-- reason: string literal compared with a date column; Trino has no implicit varchar-to-date coercion, so the literal is wrapped in cast(... as date).
+-- compare: trinodb/trino testing/trino-benchmark-queries/src/main/resources/sql/trino/tpcds/q16.sql
+-- TPC-DS Q16: kit template query16.tpl with the specification's (v2.10.0, Appendix B) qualification substitution parameters
+-- tpcds-kit commit 5a3a81796992b725c2a8b216767e142609966752
+-- normalized: '+ N days' -> '+ interval 'N' day'
+select
+   count(distinct cs_order_number) as "order count"
+  ,sum(cs_ext_ship_cost) as "total shipping cost"
+  ,sum(cs_net_profit) as "total net profit"
+from
+   catalog_sales cs1
+  ,date_dim
+  ,customer_address
+  ,call_center
+where
+    d_date between cast('2002-2-01' as date) and
+           (cast('2002-2-01' as date) + interval '60' day)
+and cs1.cs_ship_date_sk = d_date_sk
+and cs1.cs_ship_addr_sk = ca_address_sk
+and ca_state = 'GA'
+and cs1.cs_call_center_sk = cc_call_center_sk
+and cc_county in ('Williamson County','Williamson County','Williamson County','Williamson County',
+                  'Williamson County'
+)
+and exists (select *
+            from catalog_sales cs2
+            where cs1.cs_order_number = cs2.cs_order_number
+              and cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk)
+and not exists(select *
+               from catalog_returns cr1
+               where cs1.cs_order_number = cr1.cr_order_number)
+order by count(distinct cs_order_number)
+limit 100;

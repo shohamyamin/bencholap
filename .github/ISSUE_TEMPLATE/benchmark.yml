@@ -1,0 +1,113 @@
+name: Benchmark request
+description: Compare Trino builds on TPC-H / TPC-DS. A maintainer approves, the run happens on GitHub, results come back here.
+title: "Benchmark: "
+labels: ["benchmark"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill in what to compare. After you submit, a bot checks the request and comments what will run.
+        A maintainer starts it by adding the `benchmark: approved` label; results are posted to this issue
+        and published on the results site.
+
+        **Targets** can be a release (`484`), a published image (`image:ghcr.io/you/trino:tag`),
+        a fork branch or commit (`github:you/trino@my-branch`), a GitHub URL
+        (`https://github.com/you/trino/tree/my-branch`), or a pull request (`pr:12345`, and `pr-base:12345`
+        for its merge base). Compare against the commit your change is based on, not against an unrelated release.
+  - type: input
+    id: baseline
+    attributes:
+      label: Baseline
+      description: What you compare against (first target).
+      placeholder: "pr-base:12345  or  github:trinodb/trino@<commit>  or  484"
+    validations:
+      required: true
+  - type: input
+    id: change
+    attributes:
+      label: Change
+      description: Your build.
+      placeholder: "pr:12345  or  github:you/trino@faster-avg"
+    validations:
+      required: true
+  - type: input
+    id: more
+    attributes:
+      label: More targets
+      description: Optional, space separated.
+  - type: dropdown
+    id: benchmark
+    attributes:
+      label: Benchmark
+      options:
+        - tpch (TPC-H derived, 22 queries)
+        - tpcds (TPC-DS derived, 99 queries)
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: scale_factor
+    attributes:
+      label: Scale factor
+      description: Must be supported by the cluster profile (GitHub runners support SF1).
+      options: ["1", "10", "100"]
+      default: 0
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Cluster profile
+      description: >
+        Where Trino runs. gh-standard = free GitHub runner, single node.
+        gh-distributed = same runner, coordinator + 2 workers (distributed plans, not scaling).
+        Need another setup? Propose a profile in src/bencholap/profiles/clusters with a pull request.
+      options:
+        - gh-distributed
+        - gh-standard
+      default: 1
+    validations:
+      required: true
+  - type: dropdown
+    id: preset
+    attributes:
+      label: Repetitions
+      options:
+        - quick (1 warmup, 2 runs)
+        - standard (1 warmup, 5 runs, 2 alternating rounds)
+        - thorough (2 warmups, 5 runs, 4 alternating rounds)
+      default: 1
+    validations:
+      required: true
+  - type: input
+    id: queries
+    attributes:
+      label: Queries
+      description: "all, or a comma separated list such as q01,q06,q17"
+      value: all
+  - type: input
+    id: match
+    attributes:
+      label: Query filter
+      description: "Optional regular expression; only queries whose SQL matches run. Example for an avg optimization: avg\\s*\\("
+  - type: dropdown
+    id: variants
+    attributes:
+      label: Settings variants
+      description: Run every target with a reviewed set of settings (src/bencholap/profiles/variants).
+      options:
+        - none
+        - dynamic-filtering
+      default: 0
+  - type: dropdown
+    id: publish
+    attributes:
+      label: Publish results
+      description: Publish the report on the public results site.
+      options: ["yes", "no"]
+      default: 0
+  - type: textarea
+    id: description
+    attributes:
+      label: What are you testing?
+      description: Shown in the report.

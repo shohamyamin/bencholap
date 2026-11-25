@@ -1,0 +1,12 @@
+# Cluster section for `bencholap compare --cluster deploy/kubernetes/cluster.yaml ...`
+# (or paste it under `cluster:` in a run config). Requires kubectl/helm access to the
+# cluster, BENCHOLAP_STACK=external with S3 + Iceberg REST catalog reachable from the pods,
+# and a coordinator URL reachable from where bencholap runs (for example a self-hosted
+# GitHub runner inside the cluster).
+cluster:
+  type: command
+  workers: 4
+  url: http://bencholap-trino.bencholap.svc.cluster.local:8080
+  deploy: deploy/kubernetes/deploy.sh
+  teardown: helm uninstall bencholap --namespace bencholap --wait
+  startup_timeout: 900

@@ -1,0 +1,40 @@
+# Build the results site from the `results` branch and deploy it to GitHub Pages.
+name: site
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["src/bencholap/report/**", "src/bencholap/site.py", ".github/workflows/site.yml"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: {ref: results, path: results-branch}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run bencholap site build --results results-branch --out _site --repo "$GITHUB_REPOSITORY"
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: _site}
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

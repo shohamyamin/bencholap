@@ -1,0 +1,13 @@
+name: oci-a1-arm
+title: Oracle Cloud Ampere A1 (ARM), single node (planned)
+description: >
+  4 OCPU / 24 GB Ampere A1 VM from Oracle Cloud's Always Free tier, registered as a
+  self-hosted runner. Not shared with other jobs, so far less noisy than GitHub runners,
+  at no cost. Uses the arm64 Trino images.
+status: planned
+runner: bencholap-oci-a1
+cluster: {type: docker, workers: 0}
+resources: {memory: 18g}
+scale_factors: [1, 10]
+max_targets: 3
+hardware: {vcpus: 4, memory_gb: 24, kind: dedicated ARM VM}

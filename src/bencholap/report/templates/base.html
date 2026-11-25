@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}bencholap{% endblock %}</title>
+<style>{% include "_style.css" %}</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+</head>
+<body>
+{% set r_ = root if root else '.' %}
+<header class="top"><div class="in">
+  <a class="brand" href="{{ r_ }}/index.html"><span class="logo"></span>bencholap</a>
+  <nav>
+    <a href="{{ r_ }}/index.html" class="{{ 'on' if page == 'index' }}">Overview</a>
+    <a href="{{ r_ }}/runs.html" class="{{ 'on' if page == 'runs' }}">Runs</a>
+    <a href="{{ r_ }}/explore.html" class="{{ 'on' if page == 'explore' }}">Explore queries</a>
+    {% if repo %}<a href="https://github.com/{{ repo }}">GitHub</a>{% endif %}
+  </nav>
+  {% if repo %}<a class="cta" href="https://github.com/{{ repo }}/issues/new?template=benchmark.yml">Request a benchmark</a>{% endif %}
+</div></header>
+<main>
+{% block content %}{% endblock %}
+<footer>Results are derived from TPC-H / TPC-DS and are not comparable to published TPC results.
+  Timings are only comparable between runs on the same machine class (cluster profile and hardware).</footer>
+</main>
+<script>{% include "_common.js" %}</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

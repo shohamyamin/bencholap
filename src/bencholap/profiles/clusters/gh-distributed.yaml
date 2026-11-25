@@ -1,0 +1,13 @@
+name: gh-distributed
+title: GitHub runner, coordinator + 2 workers
+description: >
+  Same free runner, but Trino runs as a coordinator plus two workers (4 GB each), so
+  queries use distributed plans and exchanges. All nodes share 4 vCPUs: use it to check
+  distributed execution, not to measure scaling.
+status: available
+runner: ubuntu-24.04
+cluster: {type: docker, workers: 2}
+resources: {memory: 4g}
+scale_factors: [1]
+max_targets: 2
+hardware: {vcpus: 4, memory_gb: 16, kind: shared cloud VM}

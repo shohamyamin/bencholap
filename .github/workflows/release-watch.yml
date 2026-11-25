@@ -1,0 +1,54 @@
+# Daily: when a new Trino release image appears, benchmark it against the previous release
+# (TPC-H and TPC-DS, SF1, gh-standard profile) and publish the results.
+name: release-watch
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even if the latest release was already benchmarked
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    outputs:
+      tpch: ${{ steps.r.outputs.tpch }}
+      tpcds: ${{ steps.r.outputs.tpcds }}
+      new: ${{ steps.r.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: {ref: results, path: results-branch}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - id: r
+        run: |
+          for b in tpch tpcds; do
+            uv run bencholap request sweep --every 1 --kind release -b "$b" --out "req-$b" > /dev/null
+            echo "$b=$(cat req-$b/request.json)" >> "$GITHUB_OUTPUT"
+          done
+          latest=$(jq -r '.targets[-1]' req-tpch/request.json)
+          seen=$(grep -l '"kind": "release"' results-branch/runs/*/result.json 2>/dev/null | xargs -r grep -l "\"version\": \"$latest\"" | head -1 || true)
+          echo "latest release $latest, already benchmarked: ${seen:-no}"
+          if [ -z "$seen" ] || [ "${{ inputs.force }}" = "true" ]; then echo "new=true" >> "$GITHUB_OUTPUT"; fi
+
+  tpch:
+    needs: detect
+    if: needs.detect.outputs.new == 'true'
+    uses: ./.github/workflows/benchmark.yml
+    with: {request: "${{ needs.detect.outputs.tpch }}"}
+  tpcds:
+    needs: [detect, tpch]
+    if: always() && needs.detect.outputs.new == 'true'
+    uses: ./.github/workflows/benchmark.yml
+    with: {request: "${{ needs.detect.outputs.tpcds }}"}

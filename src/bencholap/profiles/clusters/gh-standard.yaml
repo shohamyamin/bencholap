@@ -1,0 +1,13 @@
+name: gh-standard
+title: GitHub runner, single node
+description: >
+  Free GitHub-hosted runner (4 vCPU, 16 GB). Trino runs as one node with a 10 GB container.
+  Shared hardware: wall-time differences under about 10% are usually noise, so read CPU
+  time, input bytes and the confidence intervals.
+status: available
+runner: ubuntu-24.04
+cluster: {type: docker, workers: 0}
+resources: {memory: 10g}
+scale_factors: [1]
+max_targets: 3
+hardware: {vcpus: 4, memory_gb: 16, kind: shared cloud VM}

@@ -1,0 +1,61 @@
+name: tpcds
+title: TPC-DS (derived)
+# Results are not audited TPC results and must be labelled "derived from TPC-DS".
+spec: https://www.tpc.org/tpc_documents_current_versions/pdf/tpc-ds_v2.10.0.pdf  # version of the kit used
+tables: [call_center, catalog_page, catalog_returns, catalog_sales, customer, customer_address,
+         customer_demographics, date_dim, household_demographics, income_band, inventory, item,
+         promotion, reason, ship_mode, store, store_returns, store_sales, time_dim, warehouse,
+         web_page, web_returns, web_sales, web_site]
+# 99 templates; q14, q23, q24 and q39 each contain two statements that run as one query.
+queries: [q01, q02, q03, q04, q05, q06, q07, q08, q09, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19,
+          q20, q21, q22, q23, q24, q25, q26, q27, q28, q29, q30, q31, q32, q33, q34, q35, q36, q37, q38,
+          q39, q40, q41, q42, q43, q44, q45, q46, q47, q48, q49, q50, q51, q52, q53, q54, q55, q56, q57,
+          q58, q59, q60, q61, q62, q63, q64, q65, q66, q67, q68, q69, q70, q71, q72, q73, q74, q75, q76,
+          q77, q78, q79, q80, q81, q82, q83, q84, q85, q86, q87, q88, q89, q90, q91, q92, q93, q94, q95,
+          q96, q97, q98, q99]
+# Canonical queries: kit templates rendered with the specification's qualification substitution
+# parameters (Appendix B); the same queries run at every scale factor (queries/any/).
+# variants/ holds the TPC-approved query variants, usable as engine overrides.
+# Official answer sets exist for SF1 only (answers/N.ans, N_NULLS_FIRST/LAST.ans).
+scale_factors: [1, 10, 100, 1000]
+answers:
+  scale_factor: 1
+  format: tpcds
+generator:
+  tool: tpcgen-cli
+  version: "4.0.0"
+
+default_layout: unpartitioned
+layouts:
+  unpartitioned:
+    description: >
+      Unpartitioned, unsorted tables loaded with CREATE TABLE AS SELECT from the generated
+      data, as in Trino's own benchmark setup.
+    validated: true
+    sources:
+      - name: Trino benchto TPC-DS schema generation (generate-tpcds.py)
+        url: https://github.com/trinodb/trino/blob/master/testing/trino-benchto-benchmarks/generate_schemas/generate-tpcds.py
+    analyze: true
+    tables: {}
+
+  date-partitioned:
+    description: >
+      The seven fact tables are partitioned by their date surrogate key (identity
+      partitioning); dimension tables are unpartitioned. Tables are analyzed after load.
+      Note: at small scale factors this creates many small files (about 1,800 date
+      partitions per sales table).
+    validated: true
+    sources:
+      - name: LST-Bench (SIGMOD 2024) Trino 420 TPC-DS build scripts, Iceberg/Delta/Hudi
+        url: https://github.com/microsoft/lst-bench/tree/main/core/run/trino-420/scripts/tpcds/build
+      - name: Databricks spark-sql-perf TPC-DS table definitions (partitionColumns)
+        url: https://github.com/bogdanrdc/spark-sql-perf/blob/master/src/main/scala/com/databricks/spark/sql/perf/tpcds/Tables.scala
+    analyze: true
+    tables:
+      catalog_sales: {partitioning: [cs_sold_date_sk]}
+      catalog_returns: {partitioning: [cr_returned_date_sk]}
+      inventory: {partitioning: [inv_date_sk]}
+      store_sales: {partitioning: [ss_sold_date_sk]}
+      store_returns: {partitioning: [sr_returned_date_sk]}
+      web_sales: {partitioning: [ws_sold_date_sk]}
+      web_returns: {partitioning: [wr_returned_date_sk]}

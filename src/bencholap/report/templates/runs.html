@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}bencholap · runs{% endblock %}
+{% block content %}
+<h1>Runs</h1>
+<div class="muted">Every published run. Click a column to sort; "change" is the geometric mean of per-query wall-time ratios of the
+  second configuration against the baseline (negative is faster).</div>
+<div class="controls" style="margin-top:14px">
+  <input type="search" id="f" placeholder="search name, version, target, user…" size="36">
+  <select id="bench"><option value="">all benchmarks</option></select>
+  <select id="profile"><option value="">all profiles</option></select>
+  <select id="kind"><option value="">all kinds</option></select>
+  <label class="chk"><input type="checkbox" id="onlyFailed"> with failures</label>
+  <span class="small muted" id="count"></span>
+</div>
+<div class="tablewrap"><table class="t" id="t"><thead><tr>
+  <th class="sortable" data-key="started_at">started</th>
+  <th class="sortable" data-key="name">run</th>
+  <th class="sortable" data-key="benchmark">benchmark</th>
+  <th class="sortable" data-key="profile">profile</th>
+  <th>configurations</th>
+  <th class="num sortable" data-type="num" data-asc="1" data-key="geomean">change</th>
+  <th class="num sortable" data-type="num" data-key="improvements">improved</th>
+  <th class="num sortable" data-type="num" data-key="regressions">regressed</th>
+  <th class="num sortable" data-type="num" data-key="total">baseline total</th>
+  <th class="num sortable" data-type="num" data-key="queries">queries</th>
+</tr></thead><tbody></tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const R = {{ runs_json|safe }};
+const {esc, fmt, delta} = BL;
+const sel = (id, key) => { const s = document.getElementById(id); [...new Set(R.map(r => r[key]).filter(Boolean))].sort().forEach(v => s.add(new Option(v, v))); return s; };
+const bench = sel('bench', 'benchmark'), profile = sel('profile', 'profile'), kind = sel('kind', 'kind');
+const f = document.getElementById('f'), onlyFailed = document.getElementById('onlyFailed');
+R.forEach(r => { r.total = r.configs[0]?.total_ms; r._text = [r.name, r.run_id, r.requested_by, ...r.configs.map(c => `${c.id} ${c.version} ${c.spec}`)].join(' ').toLowerCase(); });
+const draw = BL.sortable(document.getElementById('t'), () => R.filter(r => (!bench.value || r.benchmark === bench.value) && (!profile.value || r.profile === profile.value)
+    && (!kind.value || r.kind === kind.value) && (!onlyFailed.checked || r.failed) && (!f.value || r._text.includes(f.value.toLowerCase()))),
+  r => `<tr class="click" onclick="location.href='runs/${r.run_id}/index.html'">
+    <td class="small">${esc(r.started_at.replace('T', ' ').slice(0, 16))}</td>
+    <td><a href="runs/${r.run_id}/index.html"><b>${esc(r.name)}</b></a><div class="tiny muted">${esc(r.kind)}${r.issue ? ` · #${r.issue}` : ''}${r.requested_by ? ` · ${esc(r.requested_by)}` : ''}</div></td>
+    <td class="small">${esc(r.benchmark)} SF${esc(r.scale_factor)}<div class="tiny muted">${esc(r.layout)}</div></td>
+    <td><span class="pill info">${esc(r.profile || '–')}</span></td>
+    <td class="small">${r.configs.map((c, i) => `${esc(c.id)}${c.version ? ` <span class="muted">(${esc(c.version)})</span>` : ''}${i && c.geomean ? ' ' + delta(c.geomean, true) : ''}${c.failed ? ` <span class="pill err">${c.failed} failed</span>` : ''}`).join('<br>')}</td>
+    <td class="num">${r.geomean ? delta(r.geomean, true) : '–'}</td>
+    <td class="num good">${r.improvements}</td><td class="num bad">${r.regressions}</td>
+    <td class="num">${fmt(r.total, 'time')}</td><td class="num">${r.queries}</td></tr>`,
+  {key: 'started_at', asc: false});
+const redraw = () => { draw(); document.getElementById('count').textContent = `${document.querySelectorAll('#t tbody tr.click').length} of ${R.length} runs`; };
+[f, bench, profile, kind, onlyFailed].forEach(e => e.addEventListener('input', redraw));
+redraw();
+</script>
+{% endblock %}

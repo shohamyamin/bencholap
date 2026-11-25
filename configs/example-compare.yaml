@@ -1,0 +1,30 @@
+# Full example: a release, a fork branch, and two configuration variants.
+name: 483 vs my-branch
+kind: manual
+benchmark: tpcds
+scale_factor: 1
+layout: date-partitioned        # see `bencholap layouts`
+queries: all
+warmup: 1
+repetitions: 5
+rounds: 2                       # A B A B: spreads machine noise over both targets
+timeout: 10m
+resources: {memory: 10g, cpus: 4}
+
+targets:
+  - name: base
+    source: "483"
+  - name: head
+    source: "github:my-user/trino@my-branch"     # or pr:12345, image:..., tarball:...
+    # Extra catalog properties for this target only, applied on top of the version
+    # profile in src/bencholap/engines/trino/profiles.yaml. null removes a property.
+    catalog:
+      iceberg: {}
+
+variants:
+  - name: default
+  - name: no-fs-cache
+    description: file system memory cache disabled (the 484 image enables one by default)
+    config: {cache-manager.config-files: null}
+  - name: no-dynamic-filtering
+    session: {enable_dynamic_filtering: false}
