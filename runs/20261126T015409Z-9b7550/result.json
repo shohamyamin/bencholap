@@ -1,0 +1,2095 @@
+{
+  "schema_version": 1,
+  "run_id": "20261126T015409Z-9b7550",
+  "name": "Benchmark: auto-close check (TPC-H q01,q06)",
+  "started_at": "2026-11-26T01:54:09Z",
+  "duration_seconds": 48.4,
+  "harness": {
+    "version": "0.1.0",
+    "commit": "405ac05c7664f85f4f7fe4c8e24408ae20049fde",
+    "dirty": true
+  },
+  "machine": {
+    "cpu_model": "Intel(R) Xeon(R) 6975P-C",
+    "cpu_count": 4,
+    "memory_gb": 15.3,
+    "arch": "x86_64",
+    "os": "Linux 7.0.0-1014-aws",
+    "runner": {
+      "kind": "github-hosted",
+      "name": "GitHub Actions 1000001039",
+      "image": "ubuntu24",
+      "image_version": "20261116.133.1",
+      "label": "ubuntu-24.04"
+    },
+    "topology": {
+      "profile": "gh-standard",
+      "cluster": {
+        "type": "docker",
+        "workers": 0
+      },
+      "resources": {
+        "memory": "10g"
+      }
+    },
+    "fingerprint": "ae5a801786ae",
+    "profile": "gh-standard",
+    "display": "gh-standard: 4x Intel(R) Xeon(R) 6975P-C, 15.3 GB \u00b7 docker, 0 worker(s), 10g / all cpus per node"
+  },
+  "benchmark": {
+    "name": "tpch",
+    "title": "TPC-H (derived)",
+    "scale_factor": "1",
+    "layout": "unpartitioned"
+  },
+  "dataset": {
+    "id": "tpch_sf1_unpartitioned",
+    "benchmark": "tpch",
+    "scale_factor": "1",
+    "layout": {
+      "name": "unpartitioned",
+      "description": "Unpartitioned, unsorted tables loaded with CREATE TABLE AS SELECT from the generated data, as in Trino's own benchmark setup.",
+      "validated": true,
+      "sources": [
+        {
+          "name": "Trino benchto TPC-H schema generation (generate-tpch.py)",
+          "url": "https://github.com/trinodb/trino/blob/master/testing/trino-benchto-benchmarks/generate_schemas/generate-tpch.py"
+        }
+      ],
+      "analyze": true,
+      "tables": {}
+    },
+    "catalog": "iceberg",
+    "schema": "tpch_sf1_unpartitioned",
+    "generator": {
+      "tool": "tpcgen-cli",
+      "version": "4.0.0"
+    },
+    "loader": {
+      "spec": "484",
+      "version": "484",
+      "image": "trinodb/trino:484",
+      "source": {
+        "kind": "release",
+        "image": "trinodb/trino:484",
+        "digest": "[\"trinodb/trino@sha256:2704eb53935af5e582d63d6033e9bf99d20c325e9b0e30b1016ef59a4773979f\"] sha256:e54a8dff51aee21059b8b905f634b9550032baf0dd3653f333339f811454f367"
+      }
+    },
+    "stack": {
+      "storage_image": "chrislusf/seaweedfs:4.55",
+      "catalog_image": "apache/iceberg-rest-fixture:1.10.1"
+    },
+    "built_at": "2026-11-26T01:54:09Z",
+    "build_seconds": 30.5,
+    "tables": {
+      "region": {
+        "rows": 5,
+        "data_files": 1,
+        "data_bytes": 893,
+        "snapshot_id": 7439737530972767859,
+        "load_seconds": 2.48
+      },
+      "nation": {
+        "rows": 25,
+        "data_files": 1,
+        "data_bytes": 1846,
+        "snapshot_id": 7762632012383167551,
+        "load_seconds": 0.44
+      },
+      "supplier": {
+        "rows": 10000,
+        "data_files": 1,
+        "data_bytes": 491575,
+        "snapshot_id": 6202465978971428132,
+        "load_seconds": 0.83
+      },
+      "customer": {
+        "rows": 150000,
+        "data_files": 1,
+        "data_bytes": 7483394,
+        "snapshot_id": 6453139191308184547,
+        "load_seconds": 1.61
+      },
+      "part": {
+        "rows": 200000,
+        "data_files": 1,
+        "data_bytes": 4150657,
+        "snapshot_id": 940750368203590772,
+        "load_seconds": 1.25
+      },
+      "partsupp": {
+        "rows": 800000,
+        "data_files": 2,
+        "data_bytes": 27818802,
+        "snapshot_id": 7107891478283609292,
+        "load_seconds": 3.27
+      },
+      "orders": {
+        "rows": 1500000,
+        "data_files": 2,
+        "data_bytes": 34258763,
+        "snapshot_id": 2965859323983586125,
+        "load_seconds": 3.54
+      },
+      "lineitem": {
+        "rows": 6001215,
+        "data_files": 4,
+        "data_bytes": 143353814,
+        "snapshot_id": 8399957862801842589,
+        "load_seconds": 11.18
+      }
+    }
+  },
+  "settings": {
+    "warmup": 1,
+    "repetitions": 3,
+    "rounds": 1,
+    "timeout": "10m",
+    "resources": {
+      "memory": "10g"
+    },
+    "cluster": {
+      "type": "docker",
+      "workers": 0
+    },
+    "queries": [
+      "q01",
+      "q06"
+    ],
+    "match": null
+  },
+  "run_config": {
+    "name": "Benchmark: auto-close check (TPC-H q01,q06)",
+    "kind": "request",
+    "description": "Check that the issue closes after the run.",
+    "benchmark": "tpch",
+    "scale_factor": "1",
+    "queries": "q01,q06",
+    "match": null,
+    "warmup": 1,
+    "repetitions": 3,
+    "rounds": 1,
+    "resources": {
+      "memory": "10g"
+    },
+    "cluster": {
+      "type": "docker",
+      "workers": 0
+    },
+    "targets": [
+      {
+        "name": "baseline-483",
+        "source": "483"
+      },
+      {
+        "name": "change-484",
+        "source": "484"
+      }
+    ],
+    "profile": "gh-standard",
+    "preset": "quick",
+    "request": {
+      "issue": 4,
+      "requested_by": "shohamyamin",
+      "variants": null,
+      "repo": "shohamyamin/bencholap"
+    }
+  },
+  "configurations": [
+    {
+      "id": "baseline-483/default",
+      "target": "baseline-483",
+      "variant": "default",
+      "engine": "trino",
+      "target_spec": "483",
+      "version": "483",
+      "version_number": 483,
+      "image": "trinodb/trino:483",
+      "source": {
+        "kind": "release",
+        "image": "trinodb/trino:483",
+        "digest": "[\"trinodb/trino@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534\"] sha256:1a95bd13a3771179e2859fba98fc5831091a82f65ca12d193144be40d3bbd921"
+      },
+      "variant_description": "",
+      "overrides": {},
+      "session": {
+        "query_max_execution_time": "10m"
+      },
+      "effective_config": {
+        "config.properties": {
+          "coordinator": "true",
+          "node-scheduler.include-coordinator": "true",
+          "discovery.uri": "http://localhost:8080",
+          "catalog.management": "${ENV:CATALOG_MANAGEMENT}"
+        },
+        "jvm.config": [
+          "-server",
+          "-agentpath:/usr/lib/trino/bin/libjvmkill.so",
+          "-XX:InitialRAMPercentage=80",
+          "-XX:MaxRAMPercentage=80",
+          "-XX:G1HeapRegionSize=32M",
+          "-XX:+ExplicitGCInvokesConcurrent",
+          "-XX:+HeapDumpOnOutOfMemoryError",
+          "-XX:+ExitOnOutOfMemoryError",
+          "-XX:-OmitStackTraceInFastThrow",
+          "-XX:ReservedCodeCacheSize=256M",
+          "-XX:PerMethodRecompilationCutoff=10000",
+          "-XX:PerBytecodeRecompilationCutoff=10000",
+          "-Djdk.attach.allowAttachSelf=true",
+          "-Djdk.nio.maxCachedBufferSize=2000000"
+        ],
+        "catalogs": {
+          "iceberg": {
+            "connector.name": "iceberg",
+            "iceberg.catalog.type": "rest",
+            "iceberg.rest-catalog.uri": "http://catalog:8181",
+            "iceberg.file-format": "PARQUET",
+            "s3.endpoint": "http://storage:8333",
+            "s3.region": "us-east-1",
+            "s3.path-style-access": "true",
+            "s3.aws-access-key": "***",
+            "s3.aws-secret-key": "***",
+            "fs.s3.enabled": "true"
+          }
+        },
+        "profiles_applied": {
+          "iceberg": [
+            ">=481"
+          ]
+        },
+        "resources": {
+          "memory": "10g"
+        },
+        "cluster": {
+          "type": "docker",
+          "workers": 0,
+          "nodes": 1,
+          "node_versions": [
+            "483"
+          ]
+        }
+      }
+    },
+    {
+      "id": "change-484/default",
+      "target": "change-484",
+      "variant": "default",
+      "engine": "trino",
+      "target_spec": "484",
+      "version": "484",
+      "version_number": 484,
+      "image": "trinodb/trino:484",
+      "source": {
+        "kind": "release",
+        "image": "trinodb/trino:484",
+        "digest": "[\"trinodb/trino@sha256:2704eb53935af5e582d63d6033e9bf99d20c325e9b0e30b1016ef59a4773979f\"] sha256:e54a8dff51aee21059b8b905f634b9550032baf0dd3653f333339f811454f367"
+      },
+      "variant_description": "",
+      "overrides": {},
+      "session": {
+        "query_max_execution_time": "10m"
+      },
+      "effective_config": {
+        "config.properties": {
+          "coordinator": "true",
+          "node-scheduler.include-coordinator": "true",
+          "discovery.uri": "http://localhost:8080",
+          "catalog.management": "${ENV:CATALOG_MANAGEMENT}",
+          "cache-manager.config-files": "etc/cache-manager-memory.properties"
+        },
+        "jvm.config": [
+          "-server",
+          "-agentpath:/usr/lib/trino/bin/libjvmkill.so",
+          "-XX:InitialRAMPercentage=80",
+          "-XX:MaxRAMPercentage=80",
+          "-XX:G1HeapRegionSize=32M",
+          "-XX:+ExplicitGCInvokesConcurrent",
+          "-XX:+HeapDumpOnOutOfMemoryError",
+          "-XX:+ExitOnOutOfMemoryError",
+          "-XX:-OmitStackTraceInFastThrow",
+          "-XX:ReservedCodeCacheSize=256M",
+          "-XX:PerMethodRecompilationCutoff=10000",
+          "-XX:PerBytecodeRecompilationCutoff=10000",
+          "-Djdk.attach.allowAttachSelf=true",
+          "-Djdk.nio.maxCachedBufferSize=2000000"
+        ],
+        "catalogs": {
+          "iceberg": {
+            "connector.name": "iceberg",
+            "iceberg.catalog.type": "rest",
+            "iceberg.rest-catalog.uri": "http://catalog:8181",
+            "iceberg.file-format": "PARQUET",
+            "s3.endpoint": "http://storage:8333",
+            "s3.region": "us-east-1",
+            "s3.path-style-access": "true",
+            "s3.aws-access-key": "***",
+            "s3.aws-secret-key": "***",
+            "fs.s3.enabled": "true"
+          }
+        },
+        "profiles_applied": {
+          "iceberg": [
+            ">=481"
+          ]
+        },
+        "resources": {
+          "memory": "10g"
+        },
+        "cluster": {
+          "type": "docker",
+          "workers": 0,
+          "nodes": 1,
+          "node_versions": [
+            "484"
+          ]
+        }
+      }
+    }
+  ],
+  "queries": [
+    {
+      "config_id": "baseline-483/default",
+      "query": "q01",
+      "status": "ok",
+      "error": null,
+      "sql_sha256": "700118b68410753b",
+      "sql": "-- TPC-H Q01 (sf1), generated by qgen -d -s 1\n-- tpch-dbgen commit 32f1c1b92d1664dba542e927d23d86ffa57aa253\n-- normalized: dropped 'where rownum <= -1' (no row limit)\n-- normalized: interval day precision '(3)' removed\nselect\n\tl_returnflag,\n\tl_linestatus,\n\tsum(l_quantity) as sum_qty,\n\tsum(l_extendedprice) as sum_base_price,\n\tsum(l_extendedprice * (1 - l_discount)) as sum_disc_price,\n\tsum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,\n\tavg(l_quantity) as avg_qty,\n\tavg(l_extendedprice) as avg_price,\n\tavg(l_discount) as avg_disc,\n\tcount(*) as count_order\nfrom\n\tlineitem\nwhere\n\tl_shipdate <= date '1998-12-01' - interval '90' day\ngroup by\n\tl_returnflag,\n\tl_linestatus\norder by\n\tl_returnflag,\n\tl_linestatus;\n",
+      "override": null,
+      "validation": {
+        "status": "match",
+        "reference": "q01.out"
+      },
+      "result": {
+        "rows": 4,
+        "fingerprint": "1785b836bdfebe0b",
+        "sample": [
+          [
+            "A",
+            "F",
+            37734107.0,
+            56586554400.73,
+            53758257134.87,
+            55909065222.82769,
+            25.52,
+            38273.13,
+            0.05,
+            1478493.0
+          ],
+          [
+            "N",
+            "F",
+            991417.0,
+            1487504710.38,
+            1413082168.0541,
+            1469649223.194375,
+            25.52,
+            38284.47,
+            0.05,
+            38854.0
+          ],
+          [
+            "N",
+            "O",
+            74476040.0,
+            111701729697.74,
+            106118230307.6056,
+            110367043872.49701,
+            25.5,
+            38249.12,
+            0.05,
+            2920374.0
+          ]
+        ],
+        "data": [
+          [
+            "A",
+            "F",
+            37734107.0,
+            56586554400.73,
+            53758257134.87,
+            55909065222.82769,
+            25.52,
+            38273.13,
+            0.05,
+            1478493.0
+          ],
+          [
+            "N",
+            "F",
+            991417.0,
+            1487504710.38,
+            1413082168.0541,
+            1469649223.194375,
+            25.52,
+            38284.47,
+            0.05,
+            38854.0
+          ],
+          [
+            "N",
+            "O",
+            74476040.0,
+            111701729697.74,
+            106118230307.6056,
+            110367043872.49701,
+            25.5,
+            38249.12,
+            0.05,
+            2920374.0
+          ],
+          [
+            "R",
+            "F",
+            37719753.0,
+            56568041380.9,
+            53741292684.604,
+            55889619119.83193,
+            25.51,
+            38250.85,
+            0.05,
+            1478870.0
+          ]
+        ]
+      },
+      "plan": {
+        "hash": "6388d9fde96d7a02",
+        "text": "Trino version: 483\nFragment 0 [SINGLE]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: SINGLE []\n    Output[columnNames = [l_returnflag, l_linestatus, sum_qty, sum_base_price, sum_disc_price, sum_charge, avg_qty, avg_price, avg_disc, count_order]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 0, memory: 0B, network: 0B}\n    \u2502   sum_qty := sum\n    \u2502   sum_base_price := sum_1\n    \u2502   sum_disc_price := sum_2\n    \u2502   sum_charge := sum_3\n    \u2502   avg_qty := avg\n    \u2502   avg_price := avg_4\n    \u2502   avg_disc := avg_5\n    \u2502   count_order := count\n    \u2514\u2500 RemoteMerge[sourceFragmentIds = [1]]\n           Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n\nFragment 1 [ROUND_ROBIN]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: SINGLE []\n    LocalMerge[orderBy = [l_returnflag ASC NULLS LAST, l_linestatus ASC NULLS LAST]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 0, memory: 0B, network: 0B}\n    \u2514\u2500 PartialSort[orderBy = [l_returnflag ASC NULLS LAST, l_linestatus ASC NULLS LAST]]\n       \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n       \u2502   Estimates: {rows: 6 (689B), cpu: ?, memory: ?, network: ?}\n       \u2514\u2500 RemoteSource[sourceFragmentIds = [2]]\n              Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n\nFragment 2 [HASH]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: ROUND_ROBIN []\n    Aggregate[type = FINAL, keys = [l_returnflag, l_linestatus]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 2.18G, memory: 689B, network: 0B}\n    \u2502   sum := sum(sum_6)\n    \u2502   sum_1 := sum(sum_7)\n    \u2502   sum_2 := sum(sum_8)\n    \u2502   sum_3 := sum(sum_9)\n    \u2502   avg := avg(avg_10)\n    \u2502   avg_4 := avg(avg_11)\n    \u2502   avg_5 := avg(avg_12)\n    \u2502   count := count(count_13)\n    \u2514\u2500 LocalExchange[partitioning = HASH, arguments = [l_returnflag::varchar, l_linestatus::varchar]]\n       \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_6:varbinary, sum_7:varbinary, sum_8:varbinary, sum_9:varbinary, avg_10:varbinary, avg_11:varbinary, avg_12:varbinary, count_13:bigint]\n       \u2502   Estimates: {rows: 5787310 (2.18GB), cpu: 2.18G, memory: 0B, network: 0B}\n       \u2514\u2500 RemoteSource[sourceFragmentIds = [3]]\n              Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_6:varbinary, sum_7:varbinary, sum_8:varbinary, sum_9:varbinary, avg_10:varbinary, avg_11:varbinary, avg_12:varbinary, count_13:bigint]\n\nFragment 3 [SOURCE]\n    Output layout: [l_returnflag, l_linestatus, sum_6, sum_7, sum_8, sum_9, avg_10, avg_11, avg_12, count_13]\n    Output partitioning: HASH [l_returnflag, l_linestatus]\n    Aggregate[type = PARTIAL, keys = [l_returnflag, l_linestatus]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_6:varbinary, sum_7:varbinary, sum_8:varbinary, sum_9:varbinary, avg_10:varbinary, avg_11:varbinary, avg_12:varbinary, count_13:bigint]\n    \u2502   Estimates: {rows: 5787310 (2.18GB), cpu: ?, memory: ?, network: ?}\n    \u2502   sum_6 := sum(l_quantity)\n    \u2502   sum_7 := sum(l_extendedprice)\n    \u2502   sum_8 := sum(expr)\n    \u2502   sum_9 := sum(expr_0)\n    \u2502   avg_10 := avg(l_quantity)\n    \u2502   avg_11 := avg(l_extendedprice)\n    \u2502   avg_12 := avg(l_discount)\n    \u2502   count_13 := count(*)\n    \u2514\u2500 ScanFilterProject[table = iceberg:tpch_sf1_unpartitioned.lineitem$data@8399957862801842589, filterPredicate = (l_shipdate <= date '1998-09-02')]\n           Layout: [l_quantity:decimal(15,2), l_extendedprice:decimal(15,2), l_discount:decimal(15,2), expr:decimal(31,4), expr_0:decimal(38,6), l_returnflag:varchar, l_linestatus:varchar]\n           Estimates: {rows: 6001215 (410.66MB), cpu: 296.20M, memory: 0B, network: 0B}/{rows: 5787310 (396.03MB), cpu: 296.20M, memory: 0B, network: 0B}/{rows: 5787310 (396.03MB), cpu: 396.03M, memory: 0B, network: 0B}\n           expr := $operator$multiply(l_extendedprice, $operator$subtract(decimal(10,0) '1', l_discount))\n           expr_0 := $operator$multiply($operator$multiply(l_extendedprice, $operator$subtract(decimal(10,0) '1', l_discount)), $operator$add(l_tax, decimal(10,0) '1'))\n           l_discount := 7:l_discount:decimal(15,2)\n           l_shipdate := 11:l_shipdate:date\n           l_tax := 8:l_tax:decimal(15,2)\n           l_extendedprice := 6:l_extendedprice:decimal(15,2)\n           l_quantity := 5:l_quantity:decimal(15,2)\n           l_returnflag := 9:l_returnflag:varchar\n           l_linestatus := 10:l_linestatus:varchar\n\n"
+      },
+      "summary": {
+        "wall_ms": {
+          "n": 3,
+          "median": 632.659,
+          "mean": 662.5823333333333,
+          "min": 613.526,
+          "max": 741.562,
+          "stdev": 69.06416387920248,
+          "cv": 0.1042348405695531
+        },
+        "analysis_ms": {
+          "n": 3,
+          "median": 35.04,
+          "mean": 31.853333333333335,
+          "min": 24.59,
+          "max": 35.93,
+          "stdev": 6.30595221464081,
+          "cv": 0.19796836169864407
+        },
+        "elapsed_ms": {
+          "n": 3,
+          "median": 613.63,
+          "mean": 646.5333333333333,
+          "min": 599.43,
+          "max": 726.54,
+          "stdev": 69.65062837716063,
+          "cv": 0.10772936952540828
+        },
+        "execution_ms": {
+          "n": 3,
+          "median": 588.62,
+          "mean": 614.18,
+          "min": 563.96,
+          "max": 689.96,
+          "stdev": 66.77563328041151,
+          "cv": 0.10872322980300811
+        },
+        "internal_network_input_bytes": {
+          "n": 3,
+          "median": 5050.0,
+          "mean": 5050.0,
+          "min": 5050.0,
+          "max": 5050.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_bytes": {
+          "n": 3,
+          "median": 464.0,
+          "mean": 464.0,
+          "min": 464.0,
+          "max": 464.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_positions": {
+          "n": 3,
+          "median": 4,
+          "mean": 4.0,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "peak_total_memory_reservation_bytes": {
+          "n": 3,
+          "median": 7488.0,
+          "mean": 6880.0,
+          "min": 5616.0,
+          "max": 7536.0,
+          "stdev": 1094.91917509924,
+          "cv": 0.15914522893884303
+        },
+        "peak_user_memory_reservation_bytes": {
+          "n": 3,
+          "median": 7488.0,
+          "mean": 6880.0,
+          "min": 5616.0,
+          "max": 7536.0,
+          "stdev": 1094.91917509924,
+          "cv": 0.15914522893884303
+        },
+        "physical_input_bytes": {
+          "n": 3,
+          "median": 41275917.0,
+          "mean": 41275917.0,
+          "min": 41275917.0,
+          "max": 41275917.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_read_ms": {
+          "n": 3,
+          "median": 196.0,
+          "mean": 212.33333333333334,
+          "min": 193.0,
+          "max": 248.0,
+          "stdev": 30.924639582917266,
+          "cv": 0.14564194466052086
+        },
+        "physical_written_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "planning_ms": {
+          "n": 3,
+          "median": 44.98,
+          "mean": 49.24,
+          "min": 43.27,
+          "max": 59.47,
+          "stdev": 8.900601103296337,
+          "cv": 0.1807595674918021
+        },
+        "processed_input_bytes": {
+          "n": 3,
+          "median": 390078815.0,
+          "mean": 390078815.0,
+          "min": 390078815.0,
+          "max": 390078815.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "processed_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "queued_ms": {
+          "n": 3,
+          "median": 1.59,
+          "mean": 5.906666666666667,
+          "min": 1.0,
+          "max": 15.13,
+          "stdev": 7.993086596136273,
+          "cv": 1.3532313650343575
+        },
+        "spilled_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_blocked_ms": {
+          "n": 3,
+          "median": 3630.0,
+          "mean": 3930.0,
+          "min": 3590.0,
+          "max": 4570.0,
+          "stdev": 554.616984954482,
+          "cv": 0.1411239147466875
+        },
+        "total_cpu_ms": {
+          "n": 3,
+          "median": 853.0,
+          "mean": 848.6666666666666,
+          "min": 792.0,
+          "max": 901.0,
+          "stdev": 54.62905209989766,
+          "cv": 0.06437044630781343
+        },
+        "total_drivers": {
+          "n": 3,
+          "median": 12,
+          "mean": 12.0,
+          "min": 12,
+          "max": 12,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_scheduled_ms": {
+          "n": 3,
+          "median": 1220.0,
+          "mean": 1340.0,
+          "min": 1190.0,
+          "max": 1610.0,
+          "stdev": 234.30749027719963,
+          "cv": 0.17485633602776093
+        }
+      },
+      "executions": [
+        {
+          "round": 0,
+          "rep": 0,
+          "warmup": true,
+          "ok": true,
+          "wall_ms": 1948.967,
+          "query_ids": [
+            "20261126_015435_00005_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 1930.0,
+            "queued_ms": 2.02,
+            "analysis_ms": 30.18,
+            "planning_ms": 50.84,
+            "execution_ms": 1900.0,
+            "total_cpu_ms": 2630.0,
+            "total_scheduled_ms": 5780.0,
+            "total_blocked_ms": 12870.0,
+            "physical_input_read_ms": 241.0,
+            "peak_user_memory_reservation_bytes": 48552240.0,
+            "peak_total_memory_reservation_bytes": 48552240.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 5050.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 1,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 741.562,
+          "query_ids": [
+            "20261126_015437_00006_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 726.54,
+            "queued_ms": 1.0,
+            "analysis_ms": 35.93,
+            "planning_ms": 44.98,
+            "execution_ms": 689.96,
+            "total_cpu_ms": 901.0,
+            "total_scheduled_ms": 1610.0,
+            "total_blocked_ms": 4570.0,
+            "physical_input_read_ms": 193.0,
+            "peak_user_memory_reservation_bytes": 7488.0,
+            "peak_total_memory_reservation_bytes": 7488.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 5050.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 2,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 613.526,
+          "query_ids": [
+            "20261126_015438_00007_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 599.43,
+            "queued_ms": 15.13,
+            "analysis_ms": 35.04,
+            "planning_ms": 43.27,
+            "execution_ms": 563.96,
+            "total_cpu_ms": 792.0,
+            "total_scheduled_ms": 1220.0,
+            "total_blocked_ms": 3630.0,
+            "physical_input_read_ms": 248.0,
+            "peak_user_memory_reservation_bytes": 7536.0,
+            "peak_total_memory_reservation_bytes": 7536.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 5050.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 3,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 632.659,
+          "query_ids": [
+            "20261126_015438_00008_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 613.63,
+            "queued_ms": 1.59,
+            "analysis_ms": 24.59,
+            "planning_ms": 59.47,
+            "execution_ms": 588.62,
+            "total_cpu_ms": 853.0,
+            "total_scheduled_ms": 1190.0,
+            "total_blocked_ms": 3590.0,
+            "physical_input_read_ms": 196.0,
+            "peak_user_memory_reservation_bytes": 5616.0,
+            "peak_total_memory_reservation_bytes": 5616.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 5050.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "config_id": "baseline-483/default",
+      "query": "q06",
+      "status": "ok",
+      "error": null,
+      "sql_sha256": "59f65b761f2824d2",
+      "sql": "-- TPC-H Q06 (sf1), generated by qgen -d -s 1\n-- tpch-dbgen commit 32f1c1b92d1664dba542e927d23d86ffa57aa253\n-- normalized: dropped 'where rownum <= -1' (no row limit)\nselect\n\tsum(l_extendedprice * l_discount) as revenue\nfrom\n\tlineitem\nwhere\n\tl_shipdate >= date '1994-01-01'\n\tand l_shipdate < date '1994-01-01' + interval '1' year\n\tand l_discount between .06 - 0.01 and .06 + 0.01\n\tand l_quantity < 24;\n",
+      "override": null,
+      "validation": {
+        "status": "match",
+        "reference": "q06.out"
+      },
+      "result": {
+        "rows": 1,
+        "fingerprint": "a5de47405eead58d",
+        "sample": [
+          [
+            123141078.2283
+          ]
+        ],
+        "data": [
+          [
+            123141078.2283
+          ]
+        ]
+      },
+      "plan": {
+        "hash": "df8390dad950a054",
+        "text": "Trino version: 483\nFragment 0 [SINGLE]\n    Output layout: [sum]\n    Output partitioning: SINGLE []\n    Output[columnNames = [revenue]]\n    \u2502   Layout: [sum:decimal(38,4)]\n    \u2502   Estimates: {rows: 1 (17B), cpu: 0, memory: 0B, network: 0B}\n    \u2502   revenue := sum\n    \u2514\u2500 Aggregate[type = FINAL]\n       \u2502   Layout: [sum:decimal(38,4)]\n       \u2502   Estimates: {rows: 1 (17B), cpu: 8.89M, memory: 17B, network: 0B}\n       \u2502   sum := sum(sum_0)\n       \u2514\u2500 LocalExchange[partitioning = SINGLE]\n          \u2502   Layout: [sum_0:varbinary]\n          \u2502   Estimates: {rows: 169543 (8.89MB), cpu: 0, memory: 0B, network: 0B}\n          \u2514\u2500 RemoteSource[sourceFragmentIds = [1]]\n                 Layout: [sum_0:varbinary]\n\nFragment 1 [SOURCE]\n    Output layout: [sum_0]\n    Output partitioning: SINGLE []\n    Aggregate[type = PARTIAL]\n    \u2502   Layout: [sum_0:varbinary]\n    \u2502   Estimates: {rows: 169543 (8.89MB), cpu: ?, memory: ?, network: ?}\n    \u2502   sum_0 := sum(expr)\n    \u2514\u2500 ScanFilterProject[table = iceberg:tpch_sf1_unpartitioned.lineitem$data@8399957862801842589, filterPredicate = ((decimal(15,2) '0.05' <= l_discount) AND (l_discount <= decimal(15,2) '0.07') AND (l_quantity < decimal(15,2) '24.00') AND (date '1994-01-01' <= l_shipdate) AND (l_shipdate < date '1995-01-01'))]\n           Layout: [expr:decimal(30,4)]\n           Estimates: {rows: 6001215 (97.29MB), cpu: 183.14M, memory: 0B, network: 0B}/{rows: 169543 (2.75MB), cpu: 183.14M, memory: 0B, network: 0B}/{rows: 169543 (2.75MB), cpu: 2.75M, memory: 0B, network: 0B}\n           expr := $operator$multiply(l_extendedprice, l_discount)\n           l_discount := 7:l_discount:decimal(15,2)\n           l_shipdate := 11:l_shipdate:date\n           l_extendedprice := 6:l_extendedprice:decimal(15,2)\n           l_quantity := 5:l_quantity:decimal(15,2)\n\n"
+      },
+      "summary": {
+        "wall_ms": {
+          "n": 3,
+          "median": 342.231,
+          "mean": 360.92699999999996,
+          "min": 339.162,
+          "max": 401.388,
+          "stdev": 35.0738375573589,
+          "cv": 0.09717709552723654
+        },
+        "analysis_ms": {
+          "n": 3,
+          "median": 17.6,
+          "mean": 17.456666666666667,
+          "min": 17.14,
+          "max": 17.63,
+          "stdev": 0.2746512940681933,
+          "cv": 0.015733318354106927
+        },
+        "elapsed_ms": {
+          "n": 3,
+          "median": 328.34,
+          "mean": 344.7333333333333,
+          "min": 326.02,
+          "max": 379.84,
+          "stdev": 30.42538633005887,
+          "cv": 0.08825774414056915
+        },
+        "execution_ms": {
+          "n": 3,
+          "median": 310.87,
+          "mean": 326.88,
+          "min": 308.0,
+          "max": 361.77,
+          "stdev": 30.249682642963368,
+          "cv": 0.09254063461503723
+        },
+        "internal_network_input_bytes": {
+          "n": 3,
+          "median": 220.0,
+          "mean": 220.0,
+          "min": 220.0,
+          "max": 220.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_bytes": {
+          "n": 3,
+          "median": 17.0,
+          "mean": 17.0,
+          "min": 17.0,
+          "max": 17.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_positions": {
+          "n": 3,
+          "median": 1,
+          "mean": 1.0,
+          "min": 1,
+          "max": 1,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "peak_total_memory_reservation_bytes": {
+          "n": 3,
+          "median": 112.0,
+          "mean": 146.66666666666666,
+          "min": 112.0,
+          "max": 216.0,
+          "stdev": 60.04442799572108,
+          "cv": 0.40939382724355283
+        },
+        "peak_user_memory_reservation_bytes": {
+          "n": 3,
+          "median": 112.0,
+          "mean": 146.66666666666666,
+          "min": 112.0,
+          "max": 216.0,
+          "stdev": 60.04442799572108,
+          "cv": 0.40939382724355283
+        },
+        "physical_input_bytes": {
+          "n": 3,
+          "median": 38572455.0,
+          "mean": 38572455.0,
+          "min": 38572455.0,
+          "max": 38572455.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_read_ms": {
+          "n": 3,
+          "median": 270.0,
+          "mean": 267.0,
+          "min": 257.0,
+          "max": 274.0,
+          "stdev": 8.888194417315589,
+          "cv": 0.033289117667848644
+        },
+        "physical_written_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "planning_ms": {
+          "n": 3,
+          "median": 31.24,
+          "mean": 31.51,
+          "min": 29.5,
+          "max": 33.79,
+          "stdev": 2.157707116362181,
+          "cv": 0.06847689991628629
+        },
+        "processed_input_bytes": {
+          "n": 3,
+          "median": 216040374.0,
+          "mean": 216040374.0,
+          "min": 216040374.0,
+          "max": 216040374.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "processed_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "queued_ms": {
+          "n": 3,
+          "median": 0.24458000000000002,
+          "mean": 0.45514000000000004,
+          "min": 0.1996,
+          "max": 0.9212400000000001,
+          "stdev": 0.4042804813492732,
+          "cv": 0.8882552211391509
+        },
+        "spilled_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_blocked_ms": {
+          "n": 3,
+          "median": 763.0,
+          "mean": 789.3333333333334,
+          "min": 719.0,
+          "max": 886.0,
+          "stdev": 86.55826554023211,
+          "cv": 0.10965996478914541
+        },
+        "total_cpu_ms": {
+          "n": 3,
+          "median": 375.0,
+          "mean": 379.6666666666667,
+          "min": 365.0,
+          "max": 399.0,
+          "stdev": 17.473789896108208,
+          "cv": 0.04602402957710678
+        },
+        "total_drivers": {
+          "n": 3,
+          "median": 7,
+          "mean": 7.0,
+          "min": 7,
+          "max": 7,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_scheduled_ms": {
+          "n": 3,
+          "median": 691.0,
+          "mean": 720.6666666666666,
+          "min": 682.0,
+          "max": 789.0,
+          "stdev": 59.349248801761036,
+          "cv": 0.08235325920688395
+        }
+      },
+      "executions": [
+        {
+          "round": 0,
+          "rep": 0,
+          "warmup": true,
+          "ok": true,
+          "wall_ms": 457.595,
+          "query_ids": [
+            "20261126_015439_00010_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 443.88,
+            "queued_ms": 0.29367000000000004,
+            "analysis_ms": 16.82,
+            "planning_ms": 34.3,
+            "execution_ms": 426.44,
+            "total_cpu_ms": 520.0,
+            "total_scheduled_ms": 973.0,
+            "total_blocked_ms": 1020.0,
+            "physical_input_read_ms": 243.0,
+            "peak_user_memory_reservation_bytes": 112.0,
+            "peak_total_memory_reservation_bytes": 112.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 1,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 401.388,
+          "query_ids": [
+            "20261126_015440_00011_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 379.84,
+            "queued_ms": 0.9212400000000001,
+            "analysis_ms": 17.6,
+            "planning_ms": 33.79,
+            "execution_ms": 361.77,
+            "total_cpu_ms": 399.0,
+            "total_scheduled_ms": 789.0,
+            "total_blocked_ms": 886.0,
+            "physical_input_read_ms": 257.0,
+            "peak_user_memory_reservation_bytes": 216.0,
+            "peak_total_memory_reservation_bytes": 216.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 2,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 342.231,
+          "query_ids": [
+            "20261126_015440_00012_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 328.34,
+            "queued_ms": 0.1996,
+            "analysis_ms": 17.14,
+            "planning_ms": 29.5,
+            "execution_ms": 310.87,
+            "total_cpu_ms": 375.0,
+            "total_scheduled_ms": 682.0,
+            "total_blocked_ms": 763.0,
+            "physical_input_read_ms": 270.0,
+            "peak_user_memory_reservation_bytes": 112.0,
+            "peak_total_memory_reservation_bytes": 112.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 3,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 339.162,
+          "query_ids": [
+            "20261126_015440_00013_2wuzt"
+          ],
+          "stats": {
+            "elapsed_ms": 326.02,
+            "queued_ms": 0.24458000000000002,
+            "analysis_ms": 17.63,
+            "planning_ms": 31.24,
+            "execution_ms": 308.0,
+            "total_cpu_ms": 365.0,
+            "total_scheduled_ms": 691.0,
+            "total_blocked_ms": 719.0,
+            "physical_input_read_ms": 274.0,
+            "peak_user_memory_reservation_bytes": 112.0,
+            "peak_total_memory_reservation_bytes": 112.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "config_id": "change-484/default",
+      "query": "q01",
+      "status": "ok",
+      "error": null,
+      "sql_sha256": "700118b68410753b",
+      "sql": "-- TPC-H Q01 (sf1), generated by qgen -d -s 1\n-- tpch-dbgen commit 32f1c1b92d1664dba542e927d23d86ffa57aa253\n-- normalized: dropped 'where rownum <= -1' (no row limit)\n-- normalized: interval day precision '(3)' removed\nselect\n\tl_returnflag,\n\tl_linestatus,\n\tsum(l_quantity) as sum_qty,\n\tsum(l_extendedprice) as sum_base_price,\n\tsum(l_extendedprice * (1 - l_discount)) as sum_disc_price,\n\tsum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,\n\tavg(l_quantity) as avg_qty,\n\tavg(l_extendedprice) as avg_price,\n\tavg(l_discount) as avg_disc,\n\tcount(*) as count_order\nfrom\n\tlineitem\nwhere\n\tl_shipdate <= date '1998-12-01' - interval '90' day\ngroup by\n\tl_returnflag,\n\tl_linestatus\norder by\n\tl_returnflag,\n\tl_linestatus;\n",
+      "override": null,
+      "validation": {
+        "status": "match",
+        "reference": "q01.out"
+      },
+      "result": {
+        "rows": 4,
+        "fingerprint": "1785b836bdfebe0b",
+        "sample": [
+          [
+            "A",
+            "F",
+            37734107.0,
+            56586554400.73,
+            53758257134.87,
+            55909065222.82769,
+            25.52,
+            38273.13,
+            0.05,
+            1478493.0
+          ],
+          [
+            "N",
+            "F",
+            991417.0,
+            1487504710.38,
+            1413082168.0541,
+            1469649223.194375,
+            25.52,
+            38284.47,
+            0.05,
+            38854.0
+          ],
+          [
+            "N",
+            "O",
+            74476040.0,
+            111701729697.74,
+            106118230307.6056,
+            110367043872.49701,
+            25.5,
+            38249.12,
+            0.05,
+            2920374.0
+          ]
+        ],
+        "data": [
+          [
+            "A",
+            "F",
+            37734107.0,
+            56586554400.73,
+            53758257134.87,
+            55909065222.82769,
+            25.52,
+            38273.13,
+            0.05,
+            1478493.0
+          ],
+          [
+            "N",
+            "F",
+            991417.0,
+            1487504710.38,
+            1413082168.0541,
+            1469649223.194375,
+            25.52,
+            38284.47,
+            0.05,
+            38854.0
+          ],
+          [
+            "N",
+            "O",
+            74476040.0,
+            111701729697.74,
+            106118230307.6056,
+            110367043872.49701,
+            25.5,
+            38249.12,
+            0.05,
+            2920374.0
+          ],
+          [
+            "R",
+            "F",
+            37719753.0,
+            56568041380.9,
+            53741292684.604,
+            55889619119.83193,
+            25.51,
+            38250.85,
+            0.05,
+            1478870.0
+          ]
+        ]
+      },
+      "plan": {
+        "hash": "9cc6725c4232c3f0",
+        "text": "Trino version: 484\nFragment 0 [SINGLE]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: SINGLE []\n    Output[columnNames = [l_returnflag, l_linestatus, sum_qty, sum_base_price, sum_disc_price, sum_charge, avg_qty, avg_price, avg_disc, count_order]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 0, memory: 0B, network: 0B}\n    \u2502   sum_qty := sum\n    \u2502   sum_base_price := sum_1\n    \u2502   sum_disc_price := sum_2\n    \u2502   sum_charge := sum_3\n    \u2502   avg_qty := avg\n    \u2502   avg_price := avg_4\n    \u2502   avg_disc := avg_5\n    \u2502   count_order := count\n    \u2514\u2500 RemoteMerge[sourceFragmentIds = [1]]\n           Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n\nFragment 1 [ROUND_ROBIN]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: SINGLE []\n    LocalMerge[orderBy = [l_returnflag ASC NULLS LAST, l_linestatus ASC NULLS LAST]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 0, memory: 0B, network: 0B}\n    \u2514\u2500 PartialSort[orderBy = [l_returnflag ASC NULLS LAST, l_linestatus ASC NULLS LAST]]\n       \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n       \u2502   Estimates: {rows: 6 (689B), cpu: ?, memory: ?, network: ?}\n       \u2514\u2500 RemoteSource[sourceFragmentIds = [2]]\n              Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n\nFragment 2 [HASH]\n    Output layout: [l_returnflag, l_linestatus, sum, sum_1, sum_2, sum_3, avg, avg_4, avg_5, count]\n    Output partitioning: ROUND_ROBIN []\n    Project[]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg:decimal(15,2), avg_4:decimal(15,2), avg_5:decimal(15,2), count:bigint]\n    \u2502   Estimates: {rows: 6 (689B), cpu: 689, memory: 0B, network: 0B}\n    \u2502   avg := CAST($divide_round_to_scale(sum, count_6) AS decimal(15,2))\n    \u2502   avg_4 := CAST($divide_round_to_scale(sum_1, count_7) AS decimal(15,2))\n    \u2514\u2500 Aggregate[type = FINAL, keys = [l_returnflag, l_linestatus]]\n       \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum:decimal(38,2), sum_1:decimal(38,2), sum_2:decimal(38,4), sum_3:decimal(38,6), avg_5:decimal(15,2), count:bigint, count_6:bigint, count_7:bigint]\n       \u2502   Estimates: {rows: 6 (689B), cpu: 1.69G, memory: 689B, network: 0B}\n       \u2502   sum := sum(sum_8)\n       \u2502   sum_1 := sum(sum_9)\n       \u2502   sum_2 := sum(sum_10)\n       \u2502   sum_3 := sum(sum_11)\n       \u2502   avg_5 := avg(avg_12)\n       \u2502   count := count(count_13)\n       \u2502   count_6 := count(count_14)\n       \u2502   count_7 := count(count_15)\n       \u2514\u2500 LocalExchange[partitioning = HASH, arguments = [l_returnflag::varchar, l_linestatus::varchar]]\n          \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_8:varbinary, sum_9:varbinary, sum_10:varbinary, sum_11:varbinary, avg_12:varbinary, count_13:bigint, count_14:bigint, count_15:bigint]\n          \u2502   Estimates: {rows: 5787310 (1.69GB), cpu: 1.69G, memory: 0B, network: 0B}\n          \u2514\u2500 RemoteSource[sourceFragmentIds = [3]]\n                 Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_8:varbinary, sum_9:varbinary, sum_10:varbinary, sum_11:varbinary, avg_12:varbinary, count_13:bigint, count_14:bigint, count_15:bigint]\n\nFragment 3 [SOURCE]\n    Output layout: [l_returnflag, l_linestatus, sum_8, sum_9, sum_10, sum_11, avg_12, count_13, count_14, count_15]\n    Output partitioning: HASH [l_returnflag, l_linestatus]\n    Aggregate[type = PARTIAL, keys = [l_returnflag, l_linestatus]]\n    \u2502   Layout: [l_returnflag:varchar, l_linestatus:varchar, sum_8:varbinary, sum_9:varbinary, sum_10:varbinary, sum_11:varbinary, avg_12:varbinary, count_13:bigint, count_14:bigint, count_15:bigint]\n    \u2502   Estimates: {rows: 5787310 (1.69GB), cpu: ?, memory: ?, network: ?}\n    \u2502   sum_8 := sum(l_quantity)\n    \u2502   sum_9 := sum(l_extendedprice)\n    \u2502   sum_10 := sum(expr)\n    \u2502   sum_11 := sum(expr_0)\n    \u2502   avg_12 := avg(l_discount)\n    \u2502   count_13 := count(*)\n    \u2502   count_14 := count(l_quantity)\n    \u2502   count_15 := count(l_extendedprice)\n    \u2514\u2500 ScanFilterProject[table = iceberg:tpch_sf1_unpartitioned.lineitem$data@8399957862801842589, filterPredicate = (l_shipdate <= date '1998-09-02')]\n           Layout: [l_quantity:decimal(15,2), l_extendedprice:decimal(15,2), l_discount:decimal(15,2), expr:decimal(31,4), expr_0:decimal(38,6), l_returnflag:varchar, l_linestatus:varchar]\n           Estimates: {rows: 6001215 (410.66MB), cpu: 296.20M, memory: 0B, network: 0B}/{rows: 5787310 (396.03MB), cpu: 296.20M, memory: 0B, network: 0B}/{rows: 5787310 (396.03MB), cpu: 396.03M, memory: 0B, network: 0B}\n           expr := $operator$multiply(l_extendedprice, $operator$subtract(decimal(10,0) '1', l_discount))\n           expr_0 := $operator$multiply($operator$multiply(l_extendedprice, $operator$subtract(decimal(10,0) '1', l_discount)), $operator$add(l_tax, decimal(10,0) '1'))\n           l_discount := 7:l_discount:decimal(15,2)\n           l_shipdate := 11:l_shipdate:date\n           l_tax := 8:l_tax:decimal(15,2)\n           l_returnflag := 9:l_returnflag:varchar\n           l_extendedprice := 6:l_extendedprice:decimal(15,2)\n           l_quantity := 5:l_quantity:decimal(15,2)\n           l_linestatus := 10:l_linestatus:varchar\n\n"
+      },
+      "summary": {
+        "wall_ms": {
+          "n": 3,
+          "median": 620.924,
+          "mean": 669.6103333333333,
+          "min": 608.656,
+          "max": 779.251,
+          "stdev": 95.14952861855562,
+          "cv": 0.142096864223853
+        },
+        "analysis_ms": {
+          "n": 3,
+          "median": 28.47,
+          "mean": 29.21666666666667,
+          "min": 27.33,
+          "max": 31.85,
+          "stdev": 2.350687842597001,
+          "cv": 0.08045708531421565
+        },
+        "elapsed_ms": {
+          "n": 3,
+          "median": 608.42,
+          "mean": 654.0933333333334,
+          "min": 592.13,
+          "max": 761.73,
+          "stdev": 93.57125644840588,
+          "cv": 0.14305490008827365
+        },
+        "execution_ms": {
+          "n": 3,
+          "median": 579.78,
+          "mean": 623.6233333333333,
+          "min": 563.12,
+          "max": 727.97,
+          "stdev": 90.74998089990618,
+          "cv": 0.14552050260024402
+        },
+        "internal_network_input_bytes": {
+          "n": 3,
+          "median": 4346.0,
+          "mean": 4346.0,
+          "min": 4346.0,
+          "max": 4346.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_bytes": {
+          "n": 3,
+          "median": 464.0,
+          "mean": 464.0,
+          "min": 464.0,
+          "max": 464.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_positions": {
+          "n": 3,
+          "median": 4,
+          "mean": 4.0,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "peak_total_memory_reservation_bytes": {
+          "n": 3,
+          "median": 7552.0,
+          "mean": 6567117.333333333,
+          "min": 1936.0,
+          "max": 19691864.0,
+          "stdev": 11366364.37841922,
+          "cv": 1.730799649448305
+        },
+        "peak_user_memory_reservation_bytes": {
+          "n": 3,
+          "median": 7552.0,
+          "mean": 6567117.333333333,
+          "min": 1936.0,
+          "max": 19691864.0,
+          "stdev": 11366364.37841922,
+          "cv": 1.730799649448305
+        },
+        "physical_input_bytes": {
+          "n": 3,
+          "median": 41275917.0,
+          "mean": 41275917.0,
+          "min": 41275917.0,
+          "max": 41275917.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_read_ms": {
+          "n": 3,
+          "median": 211.0,
+          "mean": 201.0,
+          "min": 176.0,
+          "max": 216.0,
+          "stdev": 21.79449471770337,
+          "cv": 0.10843032197862372
+        },
+        "physical_written_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "planning_ms": {
+          "n": 3,
+          "median": 44.03,
+          "mean": 44.919999999999995,
+          "min": 41.87,
+          "max": 48.86,
+          "stdev": 3.5789803017060606,
+          "cv": 0.07967453921874579
+        },
+        "processed_input_bytes": {
+          "n": 3,
+          "median": 390078815.0,
+          "mean": 390078815.0,
+          "min": 390078815.0,
+          "max": 390078815.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "processed_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "queued_ms": {
+          "n": 3,
+          "median": 2.09,
+          "mean": 1.9166666666666667,
+          "min": 1.07,
+          "max": 2.59,
+          "stdev": 0.7746827307571359,
+          "cv": 0.4041822943080709
+        },
+        "spilled_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_blocked_ms": {
+          "n": 3,
+          "median": 3620.0,
+          "mean": 3976.6666666666665,
+          "min": 3540.0,
+          "max": 4770.0,
+          "stdev": 688.210239195359,
+          "cv": 0.17306208864929398
+        },
+        "total_cpu_ms": {
+          "n": 3,
+          "median": 899.0,
+          "mean": 862.6666666666666,
+          "min": 767.0,
+          "max": 922.0,
+          "stdev": 83.64408725865405,
+          "cv": 0.09695991567850161
+        },
+        "total_drivers": {
+          "n": 3,
+          "median": 12,
+          "mean": 12.0,
+          "min": 12,
+          "max": 12,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_scheduled_ms": {
+          "n": 3,
+          "median": 1200.0,
+          "mean": 1346.6666666666667,
+          "min": 1190.0,
+          "max": 1650.0,
+          "stdev": 262.7419519858474,
+          "cv": 0.19510540989048072
+        }
+      },
+      "executions": [
+        {
+          "round": 0,
+          "rep": 0,
+          "warmup": true,
+          "ok": true,
+          "wall_ms": 2040.977,
+          "query_ids": [
+            "20261126_015452_00005_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 2020.0,
+            "queued_ms": 1.3,
+            "analysis_ms": 27.18,
+            "planning_ms": 55.25,
+            "execution_ms": 1990.0,
+            "total_cpu_ms": 2940.0,
+            "total_scheduled_ms": 5700.0,
+            "total_blocked_ms": 13160.0,
+            "physical_input_read_ms": 243.0,
+            "peak_user_memory_reservation_bytes": 50002296.0,
+            "peak_total_memory_reservation_bytes": 50002296.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 4346.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 1,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 779.251,
+          "query_ids": [
+            "20261126_015454_00006_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 761.73,
+            "queued_ms": 1.07,
+            "analysis_ms": 31.85,
+            "planning_ms": 48.86,
+            "execution_ms": 727.97,
+            "total_cpu_ms": 899.0,
+            "total_scheduled_ms": 1650.0,
+            "total_blocked_ms": 4770.0,
+            "physical_input_read_ms": 216.0,
+            "peak_user_memory_reservation_bytes": 19691864.0,
+            "peak_total_memory_reservation_bytes": 19691864.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 4346.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 2,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 620.924,
+          "query_ids": [
+            "20261126_015455_00007_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 608.42,
+            "queued_ms": 2.09,
+            "analysis_ms": 27.33,
+            "planning_ms": 44.03,
+            "execution_ms": 579.78,
+            "total_cpu_ms": 767.0,
+            "total_scheduled_ms": 1200.0,
+            "total_blocked_ms": 3540.0,
+            "physical_input_read_ms": 211.0,
+            "peak_user_memory_reservation_bytes": 7552.0,
+            "peak_total_memory_reservation_bytes": 7552.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 4346.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 3,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 608.656,
+          "query_ids": [
+            "20261126_015455_00008_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 592.13,
+            "queued_ms": 2.59,
+            "analysis_ms": 28.47,
+            "planning_ms": 41.87,
+            "execution_ms": 563.12,
+            "total_cpu_ms": 922.0,
+            "total_scheduled_ms": 1190.0,
+            "total_blocked_ms": 3620.0,
+            "physical_input_read_ms": 176.0,
+            "peak_user_memory_reservation_bytes": 1936.0,
+            "peak_total_memory_reservation_bytes": 1936.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 41275917.0,
+            "processed_input_bytes": 390078815.0,
+            "internal_network_input_bytes": 4346.0,
+            "output_bytes": 464.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 4,
+            "total_drivers": 12,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 7,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "config_id": "change-484/default",
+      "query": "q06",
+      "status": "ok",
+      "error": null,
+      "sql_sha256": "59f65b761f2824d2",
+      "sql": "-- TPC-H Q06 (sf1), generated by qgen -d -s 1\n-- tpch-dbgen commit 32f1c1b92d1664dba542e927d23d86ffa57aa253\n-- normalized: dropped 'where rownum <= -1' (no row limit)\nselect\n\tsum(l_extendedprice * l_discount) as revenue\nfrom\n\tlineitem\nwhere\n\tl_shipdate >= date '1994-01-01'\n\tand l_shipdate < date '1994-01-01' + interval '1' year\n\tand l_discount between .06 - 0.01 and .06 + 0.01\n\tand l_quantity < 24;\n",
+      "override": null,
+      "validation": {
+        "status": "match",
+        "reference": "q06.out"
+      },
+      "result": {
+        "rows": 1,
+        "fingerprint": "a5de47405eead58d",
+        "sample": [
+          [
+            123141078.2283
+          ]
+        ],
+        "data": [
+          [
+            123141078.2283
+          ]
+        ]
+      },
+      "plan": {
+        "hash": "df8390dad950a054",
+        "text": "Trino version: 484\nFragment 0 [SINGLE]\n    Output layout: [sum]\n    Output partitioning: SINGLE []\n    Output[columnNames = [revenue]]\n    \u2502   Layout: [sum:decimal(38,4)]\n    \u2502   Estimates: {rows: 1 (17B), cpu: 0, memory: 0B, network: 0B}\n    \u2502   revenue := sum\n    \u2514\u2500 Aggregate[type = FINAL]\n       \u2502   Layout: [sum:decimal(38,4)]\n       \u2502   Estimates: {rows: 1 (17B), cpu: 8.89M, memory: 17B, network: 0B}\n       \u2502   sum := sum(sum_0)\n       \u2514\u2500 LocalExchange[partitioning = SINGLE]\n          \u2502   Layout: [sum_0:varbinary]\n          \u2502   Estimates: {rows: 169543 (8.89MB), cpu: 0, memory: 0B, network: 0B}\n          \u2514\u2500 RemoteSource[sourceFragmentIds = [1]]\n                 Layout: [sum_0:varbinary]\n\nFragment 1 [SOURCE]\n    Output layout: [sum_0]\n    Output partitioning: SINGLE []\n    Aggregate[type = PARTIAL]\n    \u2502   Layout: [sum_0:varbinary]\n    \u2502   Estimates: {rows: 169543 (8.89MB), cpu: ?, memory: ?, network: ?}\n    \u2502   sum_0 := sum(expr)\n    \u2514\u2500 ScanFilterProject[table = iceberg:tpch_sf1_unpartitioned.lineitem$data@8399957862801842589, filterPredicate = ((decimal(15,2) '0.05' <= l_discount) AND (l_discount <= decimal(15,2) '0.07') AND (l_quantity < decimal(15,2) '24.00') AND (date '1994-01-01' <= l_shipdate) AND (l_shipdate < date '1995-01-01'))]\n           Layout: [expr:decimal(30,4)]\n           Estimates: {rows: 6001215 (97.29MB), cpu: 183.14M, memory: 0B, network: 0B}/{rows: 169543 (2.75MB), cpu: 183.14M, memory: 0B, network: 0B}/{rows: 169543 (2.75MB), cpu: 2.75M, memory: 0B, network: 0B}\n           expr := $operator$multiply(l_extendedprice, l_discount)\n           l_discount := 7:l_discount:decimal(15,2)\n           l_shipdate := 11:l_shipdate:date\n           l_extendedprice := 6:l_extendedprice:decimal(15,2)\n           l_quantity := 5:l_quantity:decimal(15,2)\n\n"
+      },
+      "summary": {
+        "wall_ms": {
+          "n": 3,
+          "median": 364.297,
+          "mean": 360.0106666666666,
+          "min": 351.078,
+          "max": 364.657,
+          "stdev": 7.738010101656212,
+          "cv": 0.021493835650210957
+        },
+        "analysis_ms": {
+          "n": 3,
+          "median": 18.33,
+          "mean": 19.429999999999996,
+          "min": 16.24,
+          "max": 23.72,
+          "stdev": 3.8594170544267437,
+          "cv": 0.1986318607527918
+        },
+        "elapsed_ms": {
+          "n": 3,
+          "median": 351.01,
+          "mean": 346.91333333333336,
+          "min": 338.12,
+          "max": 351.61,
+          "stdev": 7.6211569550386065,
+          "cv": 0.021968475186036684
+        },
+        "execution_ms": {
+          "n": 3,
+          "median": 327.52,
+          "mean": 327.04,
+          "min": 321.56,
+          "max": 332.04,
+          "stdev": 5.25646268891924,
+          "cv": 0.016072843349190433
+        },
+        "internal_network_input_bytes": {
+          "n": 3,
+          "median": 220.0,
+          "mean": 220.0,
+          "min": 220.0,
+          "max": 220.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_bytes": {
+          "n": 3,
+          "median": 17.0,
+          "mean": 17.0,
+          "min": 17.0,
+          "max": 17.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "output_positions": {
+          "n": 3,
+          "median": 1,
+          "mean": 1.0,
+          "min": 1,
+          "max": 1,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "peak_total_memory_reservation_bytes": {
+          "n": 3,
+          "median": 112.0,
+          "mean": 146.66666666666666,
+          "min": 112.0,
+          "max": 216.0,
+          "stdev": 60.04442799572108,
+          "cv": 0.40939382724355283
+        },
+        "peak_user_memory_reservation_bytes": {
+          "n": 3,
+          "median": 112.0,
+          "mean": 146.66666666666666,
+          "min": 112.0,
+          "max": 216.0,
+          "stdev": 60.04442799572108,
+          "cv": 0.40939382724355283
+        },
+        "physical_input_bytes": {
+          "n": 3,
+          "median": 38572455.0,
+          "mean": 38572455.0,
+          "min": 38572455.0,
+          "max": 38572455.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "physical_input_read_ms": {
+          "n": 3,
+          "median": 241.0,
+          "mean": 232.33333333333334,
+          "min": 210.0,
+          "max": 246.0,
+          "stdev": 19.5021366350801,
+          "cv": 0.08394032984969912
+        },
+        "physical_written_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "planning_ms": {
+          "n": 3,
+          "median": 32.04,
+          "mean": 32.66,
+          "min": 28.0,
+          "max": 37.94,
+          "stdev": 4.998919883334798,
+          "cv": 0.15305939630541332
+        },
+        "processed_input_bytes": {
+          "n": 3,
+          "median": 216040374.0,
+          "mean": 216040374.0,
+          "min": 216040374.0,
+          "max": 216040374.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "processed_input_positions": {
+          "n": 3,
+          "median": 6001215,
+          "mean": 6001215.0,
+          "min": 6001215,
+          "max": 6001215,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "queued_ms": {
+          "n": 3,
+          "median": 0.86429,
+          "mean": 0.9830433333333334,
+          "min": 0.23484000000000002,
+          "max": 1.85,
+          "stdev": 0.8141020955834307,
+          "cv": 0.8281446686820493
+        },
+        "spilled_bytes": {
+          "n": 3,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_blocked_ms": {
+          "n": 3,
+          "median": 760.0,
+          "mean": 772.6666666666666,
+          "min": 759.0,
+          "max": 799.0,
+          "stdev": 22.81081614790083,
+          "cv": 0.029522195187102026
+        },
+        "total_cpu_ms": {
+          "n": 3,
+          "median": 374.0,
+          "mean": 376.6666666666667,
+          "min": 365.0,
+          "max": 391.0,
+          "stdev": 13.203534880225574,
+          "cv": 0.03505363242537763
+        },
+        "total_drivers": {
+          "n": 3,
+          "median": 7,
+          "mean": 7.0,
+          "min": 7,
+          "max": 7,
+          "stdev": 0.0,
+          "cv": 0.0
+        },
+        "total_scheduled_ms": {
+          "n": 3,
+          "median": 720.0,
+          "mean": 696.0,
+          "min": 644.0,
+          "max": 724.0,
+          "stdev": 45.077710678338576,
+          "cv": 0.06476682568726808
+        }
+      },
+      "executions": [
+        {
+          "round": 0,
+          "rep": 0,
+          "warmup": true,
+          "ok": true,
+          "wall_ms": 467.575,
+          "query_ids": [
+            "20261126_015456_00010_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 453.45,
+            "queued_ms": 3.1,
+            "analysis_ms": 19.28,
+            "planning_ms": 30.58,
+            "execution_ms": 433.59,
+            "total_cpu_ms": 592.0,
+            "total_scheduled_ms": 1130.0,
+            "total_blocked_ms": 1040.0,
+            "physical_input_read_ms": 295.0,
+            "peak_user_memory_reservation_bytes": 216.0,
+            "peak_total_memory_reservation_bytes": 216.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 1,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 364.297,
+          "query_ids": [
+            "20261126_015457_00011_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 351.01,
+            "queued_ms": 0.86429,
+            "analysis_ms": 18.33,
+            "planning_ms": 37.94,
+            "execution_ms": 332.04,
+            "total_cpu_ms": 391.0,
+            "total_scheduled_ms": 720.0,
+            "total_blocked_ms": 759.0,
+            "physical_input_read_ms": 246.0,
+            "peak_user_memory_reservation_bytes": 112.0,
+            "peak_total_memory_reservation_bytes": 112.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 2,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 351.078,
+          "query_ids": [
+            "20261126_015457_00012_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 338.12,
+            "queued_ms": 0.23484000000000002,
+            "analysis_ms": 16.24,
+            "planning_ms": 32.04,
+            "execution_ms": 321.56,
+            "total_cpu_ms": 374.0,
+            "total_scheduled_ms": 724.0,
+            "total_blocked_ms": 760.0,
+            "physical_input_read_ms": 241.0,
+            "peak_user_memory_reservation_bytes": 216.0,
+            "peak_total_memory_reservation_bytes": 216.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        },
+        {
+          "round": 0,
+          "rep": 3,
+          "warmup": false,
+          "ok": true,
+          "wall_ms": 364.657,
+          "query_ids": [
+            "20261126_015457_00013_ttvdp"
+          ],
+          "stats": {
+            "elapsed_ms": 351.61,
+            "queued_ms": 1.85,
+            "analysis_ms": 23.72,
+            "planning_ms": 28.0,
+            "execution_ms": 327.52,
+            "total_cpu_ms": 365.0,
+            "total_scheduled_ms": 644.0,
+            "total_blocked_ms": 799.0,
+            "physical_input_read_ms": 210.0,
+            "peak_user_memory_reservation_bytes": 112.0,
+            "peak_total_memory_reservation_bytes": 112.0,
+            "spilled_bytes": 0.0,
+            "physical_input_bytes": 38572455.0,
+            "processed_input_bytes": 216040374.0,
+            "internal_network_input_bytes": 220.0,
+            "output_bytes": 17.0,
+            "physical_written_bytes": 0.0,
+            "physical_input_positions": 6001215,
+            "processed_input_positions": 6001215,
+            "output_positions": 1,
+            "total_drivers": 7,
+            "inputs": [
+              {
+                "table": "iceberg.tpch_sf1_unpartitioned.lineitem",
+                "columns": 4,
+                "physical_input_bytes": null,
+                "physical_input_rows": null
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
