@@ -16,6 +16,7 @@ from ..util import read_json
 
 TEMPLATES = Path(__file__).with_name("templates")
 SIGNIFICANT_CHANGE = 0.05   # report changes of at least 5% whose CI excludes "no change"
+MAX_LISTED = 15             # rows per list in the Markdown summary (issue comments stay readable)
 
 
 def load_results(paths: list[Path]) -> dict:
@@ -226,8 +227,13 @@ def markdown(result: dict, a: dict) -> str:
     if a["changes"]:
         lines += [f"**Significant changes** (≥{SIGNIFICANT_CHANGE:.0%}, 95% CI excludes no change; negative = faster):", "",
                   "| query | configuration | change [95% CI] | plan changed |", "|---|---|---|---|"]
-        for ch in a["changes"]:
+        shown = sorted(a["changes"], key=lambda c: -abs(c["ratio"] - 1))[:MAX_LISTED]
+        for ch in sorted(shown, key=lambda c: c["ratio"]):
             lines.append(f"| {ch['query']} | {ch['config']} | {fmt_ratio(ch)} | {'yes' if ch['plan_changed'] else ''} |")
+        if len(a["changes"]) > MAX_LISTED:
+            better = sum(1 for c in a["changes"] if c["ratio"] < 1)
+            lines.append(f"\n{len(a['changes'])} significant changes in total ({better} faster, "
+                         f"{len(a['changes']) - better} slower); the {MAX_LISTED} largest are listed, all are in the report.")
         lines.append("")
     else:
         lines += ["No significant per-query timing changes.", ""]
@@ -235,7 +241,9 @@ def markdown(result: dict, a: dict) -> str:
                 if c and c["status"] != "ok"]
     if problems:
         lines += ["**Failures:**", ""]
-        lines += [f"- {q} on {cid}: {c['status']} {(c.get('error') or '')[:200]}" for q, cid, c in problems]
+        lines += [f"- {q} on {cid}: {c['status']} {(c.get('error') or '')[:200]}" for q, cid, c in problems[:MAX_LISTED]]
+        if len(problems) > MAX_LISTED:
+            lines.append(f"- … {len(problems) - MAX_LISTED} more in the report")
         lines.append("")
     differ = [r["query"] for r in a["queries"] if r["results_differ"]]
     if differ:
