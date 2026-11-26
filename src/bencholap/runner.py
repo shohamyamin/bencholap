@@ -114,8 +114,7 @@ def _capture_plan(session, q: benchmarks.Query) -> dict | None:
 
 
 def _dataset_summary(manifest: dict) -> dict:
-    return {k: v for k, v in manifest.items() if k != "tables"} | {
-        "tables": {t: {k: v for k, v in d.items() if k != "ddl"} for t, d in manifest["tables"].items()}}
+    return dict(manifest)  # includes SHOW CREATE TABLE per table, so the applied layout is visible
 
 
 def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:

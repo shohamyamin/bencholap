@@ -63,7 +63,7 @@ body:
         How the tables are written (pick one or more; every target runs on each).
         TPC-H: unpartitioned, date-sorted, date-partitioned, key-bloom-filters.
         TPC-DS: unpartitioned, date-partitioned.
-        ClickBench: unpartitioned, sorted, date-partitioned, bloom-filters.
+        ClickBench: unpartitioned, small-row-groups, sorted, date-partitioned, bloom-filters.
         Only "unpartitioned" (and TPC-DS date-partitioned) follow published setups; the others are
         bencholap layouts for testing partition, min/max and bloom-filter pruning.
       multiple: true
@@ -72,6 +72,7 @@ body:
         - date-partitioned
         - date-sorted
         - key-bloom-filters
+        - small-row-groups
         - sorted
         - bloom-filters
       default: 0

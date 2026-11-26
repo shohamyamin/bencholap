@@ -23,9 +23,12 @@ class TableLayout:
     partitioning: tuple[str, ...] = ()
     sorted_by: tuple[str, ...] = ()
     bloom_filter_columns: tuple[str, ...] = ()
+    # Parquet row group target size used when writing (Trino session property
+    # parquet_writer_block_size); smaller row groups give min/max and bloom filters something to skip
+    row_group_size: str | None = None
 
     def as_dict(self) -> dict:
-        return {k: list(v) for k, v in self.__dict__.items() if v}
+        return {k: (list(v) if isinstance(v, tuple) else v) for k, v in self.__dict__.items() if v}
 
 
 @dataclass(frozen=True)
@@ -146,7 +149,7 @@ def load(name: str) -> Benchmark:
     layouts = {}
     for lname, ld in d["layouts"].items():
         tables = {
-            t: TableLayout(**{k: tuple(v) for k, v in (spec or {}).items()})
+            t: TableLayout(**{k: (v if isinstance(v, str) else tuple(v)) for k, v in (spec or {}).items()})
             for t, spec in (ld.get("tables") or {}).items()
         }
         unknown = set(tables) - set(d["tables"])

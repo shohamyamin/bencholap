@@ -116,8 +116,8 @@ def validate(req: Request) -> Request:
         if unknown:
             errs.append(f"{req.benchmark} has no layout {', '.join(f'`{x}`' for x in unknown)}; "
                         f"available: {', '.join(bench.layouts)}")
-        if len(req.layouts) > 4:
-            errs.append("at most 4 layouts per request")
+        if len(req.layouts) > 6:
+            errs.append("at most 6 layouts per request")
     if not errs:
         try:
             bench = benchmarks.load(req.benchmark)

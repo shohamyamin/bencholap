@@ -32,14 +32,14 @@ layouts:
     description: >
       lineitem sorted by l_shipdate and orders by o_orderdate when written, so min/max statistics
       let scans skip row groups for the date-range predicates of Q1, Q3-Q7, Q10, Q12, Q14, Q15 and
-      Q20. Trino sorts each written file; ranges can overlap between files.
+      Q20. Trino sorts each written file (ranges can overlap between files); row groups are 4 MB.
     validated: false
     basis: bencholap layout for min/max (row-group) pruning tests, not a published TPC-H setup.
     sources: []
     analyze: true
     tables:
-      lineitem: {sorted_by: [l_shipdate]}
-      orders: {sorted_by: [o_orderdate]}
+      lineitem: {sorted_by: [l_shipdate], row_group_size: 4MB}
+      orders: {sorted_by: [o_orderdate], row_group_size: 4MB}
 
   date-partitioned:
     description: >
@@ -63,7 +63,7 @@ layouts:
     sources: []
     analyze: true
     tables:
-      lineitem: {bloom_filter_columns: [l_orderkey, l_partkey]}
-      orders: {bloom_filter_columns: [o_orderkey]}
+      lineitem: {bloom_filter_columns: [l_orderkey, l_partkey], row_group_size: 4MB}
+      orders: {bloom_filter_columns: [o_orderkey], row_group_size: 4MB}
       part: {bloom_filter_columns: [p_partkey]}
       partsupp: {bloom_filter_columns: [ps_partkey]}
