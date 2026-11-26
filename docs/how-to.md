@@ -25,7 +25,7 @@ a Trino version deals with organized data, add bencholap layouts:
 | TPC-H | `date-sorted` | lineitem/orders sorted by date: min/max row-group pruning |
 | TPC-H | `date-partitioned` | monthly partitions: partition pruning at planning time |
 | TPC-H | `key-bloom-filters` | bloom filters on join keys, used by dynamic filters |
-| ClickBench | `small-row-groups` | control: 4 MB row groups only (sorted and bloom-filters use the same size) |
+| ClickBench | `small-row-groups` | control: row groups of at most 100,000 rows only (sorted and bloom-filters use the same size) |
 | ClickBench | `sorted` | ClickBench's primary key order: row-group pruning for CounterID / EventDate filters |
 | ClickBench | `date-partitioned` | daily partitions: Q36-Q42 date ranges |
 | ClickBench | `bloom-filters` | UserID / URLHash / RefererHash point lookups (Q19, Q40, Q41) |

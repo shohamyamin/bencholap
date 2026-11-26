@@ -35,7 +35,7 @@ layouts:
 
   small-row-groups:
     description: >
-      Unpartitioned and unsorted like the published setup, but written with 4 MB Parquet row groups.
+      Unpartitioned and unsorted like the published setup, but written with Parquet row groups of at most 100,000 rows.
       The control for the sorted and bloom-filters layouts, which use the same row group size, so their
       effect can be separated from the effect of smaller row groups.
     validated: false
@@ -43,14 +43,14 @@ layouts:
     sources: []
     analyze: true
     tables:
-      hits: {row_group_size: 4MB}
+      hits: {row_group_rows: 100000}
 
   sorted:
     description: >
       Rows sorted by ClickBench's primary key (CounterID, EventDate, UserID, EventTime, WatchID) when
       written, so min/max statistics let scans skip row groups for the many queries that filter on
       CounterID = 62 and an EventDate range. Trino sorts each written file (ranges can overlap between
-      files) and the row groups are 4 MB, so there are row groups to skip.
+      files) and the row groups have at most 100,000 rows, so there are row groups to skip.
     validated: false
     basis: >
       The sort order is the primary key of ClickBench's reference ClickHouse table; applying it to an
@@ -60,7 +60,7 @@ layouts:
         url: https://github.com/ClickHouse/ClickBench/blob/main/clickhouse/create.sql
     analyze: true
     tables:
-      hits: {sorted_by: [counterid, eventdate, userid, eventtime, watchid], row_group_size: 4MB}
+      hits: {sorted_by: [counterid, eventdate, userid, eventtime, watchid], row_group_rows: 100000}
 
   date-partitioned:
     description: >
@@ -77,11 +77,11 @@ layouts:
     description: >
       Unpartitioned and unsorted, with Parquet bloom filters on UserID, URLHash and RefererHash: the
       point lookups of Q19 (UserID = ...) and Q40/Q41 (RefererHash / URLHash = ...) can skip row groups
-      whose min/max range contains the value but whose bloom filter does not. Row groups are 4 MB;
+      whose min/max range contains the value but whose bloom filter does not. Row groups have at most 100,000 rows;
       a row group that contains the looked-up value is still read.
     validated: false
     basis: bencholap layout for bloom-filter tests, not a published ClickBench setup.
     sources: []
     analyze: true
     tables:
-      hits: {bloom_filter_columns: [userid, urlhash, refererhash], row_group_size: 4MB}
+      hits: {bloom_filter_columns: [userid, urlhash, refererhash], row_group_rows: 100000}

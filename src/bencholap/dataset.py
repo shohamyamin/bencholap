@@ -195,11 +195,11 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
             props = _table_props(tl)
             t0 = time.time()
             log.info("loading %s.%s (%s)", ds.schema, table, ", ".join(props[2:]) or "no layout properties")
-            if tl.row_group_size:
-                q(f"SET SESSION iceberg.parquet_writer_block_size = '{tl.row_group_size}'")
+            if tl.row_group_rows:
+                q(f"SET SESSION iceberg.parquet_writer_row_group_max_row_count = {int(tl.row_group_rows)}")
             q(f"CREATE TABLE iceberg.{ds.schema}.{table} WITH ({', '.join(props)}) AS {select}")
-            if tl.row_group_size:
-                q("RESET SESSION iceberg.parquet_writer_block_size")
+            if tl.row_group_rows:
+                q("RESET SESSION iceberg.parquet_writer_row_group_max_row_count")
             if lay.analyze:
                 q(f"ANALYZE iceberg.{ds.schema}.{table}")
             load_s = time.time() - t0

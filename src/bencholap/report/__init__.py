@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import html
 import json
-import statistics
 from pathlib import Path
 from typing import Any
 
@@ -321,7 +320,6 @@ def payload(result: dict, a: dict) -> dict:
     queries = []
     for row in a["queries"]:
         qid = row["query"]
-        bq = by.get((base, qid))
         cells = {}
         for c in configs:
             q = by.get((c["id"], qid))
@@ -333,19 +331,6 @@ def payload(result: dict, a: dict) -> dict:
                 if s:
                     values[m["key"]] = {"median": s["median"], "min": s["min"], "max": s["max"],
                                         "cv": s.get("cv"), "runs": _measured(q, m["key"])}
-            ratios = {}
-            if c["id"] != base and bq and bq["status"] == "ok" and q["status"] == "ok":
-                for m in metrics:
-                    b, h = _measured(bq, m["key"]), _measured(q, m["key"])
-                    if not b or not h:
-                        continue
-                    if m["key"] in BOOTSTRAP_METRICS:
-                        ratios[m["key"]] = stats.ratio_ci(b, h)
-                    else:
-                        mb = statistics.median(b)
-                        if mb:
-                            ratios[m["key"]] = {"ratio": statistics.median(h) / mb, "low": None, "high": None,
-                                                "significant": False}
             cell = row["cells"].get(c["id"]) or {}
             cells[c["id"]] = {
                 "status": q["status"], "error": q.get("error"),
@@ -355,7 +340,7 @@ def payload(result: dict, a: dict) -> dict:
                 "plan_hash": query_plan_hash(q),
                 "plan_changed": cell.get("plan_changed", False),
                 "rows": (q.get("result") or {}).get("rows"),
-                "values": values, "ratios": ratios,
+                "values": values,
             }
         sql = next((q.get("sql") for q in result["queries"] if q["query"] == qid and q.get("sql")), None)
         queries.append({"q": qid, "cells": cells, "results_differ": row["results_differ"],

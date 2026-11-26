@@ -24,10 +24,11 @@
     <div class="tablewrap" style="max-height:420px"><table class="t" id="totalsTable"><thead></thead><tbody></tbody></table></div>
   </div>
 
-  <h2>Per query <span class="hint">pick a metric and the configuration to compare with the baseline</span></h2>
+  <h2>Per query <span class="hint">pick a metric, a reference and a configuration to compare (any two: versions, variants or layouts)</span></h2>
   <div class="card">
     <div class="controls">
       <select id="metricSel"></select>
+      <select id="refSel" title="reference configuration"></select>
       <select id="cmpSel"></select>
       <div class="chips" id="viewChips"></div>
     </div>
@@ -79,7 +80,7 @@ const others = D.configs.filter(c => c.id !== D.baseline);
 const label = c => c.id + (c.version ? ` (${c.version})` : '');
 // sweeps compare the newest version with the oldest; other runs the first change with the baseline
 const mainCfg = D.meta.kind === 'sweep' ? others[others.length - 1] : others[0];
-const state = {metric: 'wall_ms', cmp: mainCfg?.id, view: 'change', totalMetric: 'wall_ms'};
+const state = {metric: 'wall_ms', cmp: mainCfg?.id, ref: D.baseline, view: 'change', totalMetric: 'wall_ms'};
 
 // ---------- header
 const m = D.meta;
@@ -136,18 +137,24 @@ function drawTotals() {
   const tbl = document.getElementById('totalsTable');
   tbl.querySelector('thead').innerHTML = `<tr><th>metric</th>${D.configs.map(c => `<th class="num"><span class="dot" style="background:${color[c.id]}"></span>${esc(c.id)}</th>`).join('')}</tr>`;
   tbl.querySelector('tbody').innerHTML = keys.map(x => {
-    const b = D.totals[D.baseline].metrics[x.key];
+    const b = D.totals[state.ref].metrics[x.key];
     return `<tr><td>${esc(x.label)}</td>${D.configs.map(c => { const v = D.totals[c.id].metrics[x.key];
-      return `<td class="num">${fmt(v, x.kind)}${c.id !== D.baseline && b ? '<br>' + delta(v / b, true) : ''}</td>`; }).join('')}</tr>`;
+      return `<td class="num">${fmt(v, x.kind)}${c.id !== state.ref && b ? '<br>' + delta(v / b, true) : ''}</td>`; }).join('')}</tr>`;
   }).join('');
 }
 drawTotals();
 
 // ---------- per-query chart
-const metricSel = document.getElementById('metricSel'), cmpSel = document.getElementById('cmpSel');
+const metricSel = document.getElementById('metricSel'), cmpSel = document.getElementById('cmpSel'), refSel = document.getElementById('refSel');
+refSel.innerHTML = D.configs.map(c => `<option value="${esc(c.id)}" ${c.id === state.ref ? 'selected' : ''}>reference: ${esc(label(c))}</option>`).join('');
+function fillCmp() {
+  const opts = D.configs.filter(c => c.id !== state.ref);
+  if (!opts.some(c => c.id === state.cmp)) state.cmp = opts[0]?.id;
+  cmpSel.innerHTML = opts.map(c => `<option value="${esc(c.id)}" ${c.id === state.cmp ? 'selected' : ''}>compared: ${esc(label(c))}</option>`).join('') || '<option>(single configuration)</option>';
+}
 metricSel.innerHTML = D.metrics.map(x => `<option value="${x.key}">${esc(x.label)}</option>`).join('');
-cmpSel.innerHTML = others.map(c => `<option value="${esc(c.id)}" ${c.id === state.cmp ? 'selected' : ''}>vs ${esc(label(c))}</option>`).join('') || '<option>(single configuration)</option>';
-const views = [['change', '% change vs baseline'], ['absolute', 'absolute values']];
+fillCmp();
+const views = [['change', '% change vs reference'], ['absolute', 'absolute values']];
 function drawViewChips() {
   const el = document.getElementById('viewChips');
   el.innerHTML = views.map(([k, l]) => `<span class="chip ${state.view === k ? 'on' : ''}" data-k="${k}">${l}</span>`).join('');
@@ -157,8 +164,35 @@ if (!others.length) state.view = 'absolute';
 drawViewChips();
 metricSel.onchange = () => { state.metric = metricSel.value; drawQueryChart(); redrawTable(); };
 cmpSel.onchange = () => { state.cmp = cmpSel.value; drawQueryChart(); redrawTable(); };
+refSel.onchange = () => { state.ref = refSel.value; fillCmp(); header(); drawTotals(); drawQueryChart(); redrawTable(); };
 const val = (q, cid, k) => q.cells[cid]?.values?.[k]?.median;
-const ratio = (q, cid, k) => q.cells[cid]?.ratios?.[k];
+// Ratios against the chosen reference, computed here so any two configurations can be compared:
+// median ratio with a 95% percentile-bootstrap interval for the timing metrics.
+const BOOT = new Set(['wall_ms', 'total_cpu_ms', 'total_scheduled_ms', 'elapsed_ms']);
+const med = a => { const s = [...a].sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null; };
+const _rc = {};
+function ratio(q, cid, k) {
+  const key = `${q.q}|${state.ref}|${cid}|${k}`;
+  if (key in _rc) return _rc[key];
+  const ra = q.cells[state.ref], rb = q.cells[cid];
+  const a = ra?.values?.[k]?.runs, b = rb?.values?.[k]?.runs;
+  let out = null;
+  if (cid !== state.ref && a?.length && b?.length && ra.status === 'ok' && rb.status === 'ok' && med(a)) {
+    out = {ratio: med(b) / med(a), low: null, high: null, significant: false};
+    if (BOOT.has(k) && a.length >= 3 && b.length >= 3) {
+      let seed = 1234; const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+      const smp = [];
+      for (let i = 0; i < 1000; i++) {
+        const x = med(a.map(() => a[Math.floor(rnd() * a.length)])), y = med(b.map(() => b[Math.floor(rnd() * b.length)]));
+        if (x > 0) smp.push(y / x);
+      }
+      smp.sort((x, y) => x - y);
+      out.low = smp[Math.floor(0.025 * smp.length)]; out.high = smp[Math.min(smp.length - 1, Math.floor(0.975 * smp.length))];
+      out.significant = out.high < 1 || out.low > 1;
+    }
+  }
+  return (_rc[key] = out);
+}
 
 function drawQueryChart() {
   const mk = M[state.metric], el = document.getElementById('queryChart'), leg = document.getElementById('chartLegend');
@@ -170,7 +204,7 @@ function drawQueryChart() {
         {label: '% change', data: rows.map(x => (x.r.ratio - 1) * 100), backgroundColor: rows.map(x => x.r.significant ? (x.r.ratio < 1 ? '#2f9e44' : '#e03131') : '#adb5bd'), barPercentage: .45, grouped: false, order: 1}]},
       options: {indexAxis: 'y', maintainAspectRatio: false, onClick: (e, els) => els.length && openQuery(rows[els[0].index].q),
         plugins: {legend: {display: false}, tooltip: {callbacks: {label: ctx => { const r = rows[ctx.dataIndex].r; return ctx.datasetIndex === 1 ? `${((r.ratio - 1) * 100).toFixed(1)}%` + (r.low !== null ? ` [${((r.low - 1) * 100).toFixed(1)}%, ${((r.high - 1) * 100).toFixed(1)}%]` : '') + (r.significant ? ' significant' : '') : null; }}}},
-        scales: {x: {title: {display: true, text: `${mk.label}: % change of ${state.cmp} vs ${D.baseline} (negative is better)`}, ticks: {callback: v => v + '%'}}}}});
+        scales: {x: {title: {display: true, text: `${mk.label}: % change of ${state.cmp} vs ${state.ref} (negative is better)`}, ticks: {callback: v => v + '%'}}}}});
     leg.innerHTML = '<span><span class="dot" style="background:#2f9e44"></span>significant improvement</span><span><span class="dot" style="background:#e03131"></span>significant regression</span><span><span class="dot" style="background:#adb5bd"></span>not significant</span><span><span class="dot" style="background:rgba(134,142,150,.35)"></span>95% bootstrap interval</span><span>click a bar for details</span>';
   } else {
     const qs = D.queries.filter(q => D.configs.some(c => val(q, c.id, mk.key) !== undefined));
@@ -205,17 +239,17 @@ function cellHtml(q, c) {
   const cell = q.cells[c.id]; const mk = M[state.metric];
   if (!cell) return '<td class="num">–</td>';
   if (cell.status !== 'ok') return `<td class="num"><span class="pill err" title="${esc(cell.error || '')}">${esc(cell.status)}</span></td>`;
-  const v = cell.values[mk.key], r = cell.ratios[mk.key];
+  const v = cell.values[mk.key], r = ratio(q, c.id, mk.key);
   const badges = [cell.validation === 'match' ? '<span class="pill ok" title="matches the official TPC answer">✓ answer</span>' : cell.validation === 'mismatch' ? '<span class="pill err">✗ answer</span>' : '',
     cell.plan_changed ? '<span class="pill warn">plan changed</span>' : '', cell.override ? `<span class="pill" title="${esc(cell.override)}">override</span>` : ''].join(' ');
   return `<td class="num">${fmt(v?.median, mk.kind)}${v && v.cv ? ` <span class="ci">±${(v.cv * 100).toFixed(0)}%</span>` : ''}`
-    + (c.id !== D.baseline ? `<br>${delta(r?.ratio, r?.significant)}${r && r.low !== null ? ` <span class="ci">[${((r.low - 1) * 100).toFixed(0)}, ${((r.high - 1) * 100).toFixed(0)}]</span>` : ''}` : '')
+    + (c.id !== state.ref ? `<br>${delta(r?.ratio, r?.significant)}${r && r.low !== null ? ` <span class="ci">[${((r.low - 1) * 100).toFixed(0)}, ${((r.high - 1) * 100).toFixed(0)}]</span>` : ''}` : '')
     + `<div class="tiny">${badges}</div></td>`;
 }
 const qt = document.getElementById('queryTable');
 function header() {
   qt.querySelector('thead').innerHTML = `<tr><th class="sortable" data-key="q">query</th>${D.configs.map(c =>
-    `<th class="num sortable" data-type="num" data-asc="1" data-key="${c.id === D.baseline ? 'v:' : 'r:'}${esc(c.id)}"><span class="dot" style="background:${color[c.id]}"></span>${esc(label(c))}${c.id === D.baseline ? '' : ' (Δ)'}</th>`).join('')}</tr>`;
+    `<th class="num sortable" data-type="num" data-asc="1" data-key="${c.id === state.ref ? 'v:' : 'r:'}${esc(c.id)}"><span class="dot" style="background:${color[c.id]}"></span>${esc(label(c))}${c.id === state.ref ? ' (reference)' : ' (Δ)'}</th>`).join('')}</tr>`;
 }
 header();
 const drawTable = BL.sortable(qt, rowsForTable, q => `<tr class="click" onclick="openQuery('${q.q}')"><td><b>${q.q}</b>${q.results_differ ? '<br><span class="pill warn">results differ</span>' : ''}</td>${D.configs.map(c => cellHtml(q, c)).join('')}</tr>`, {key: 'q'});
@@ -233,24 +267,24 @@ function openQuery(qid) {
   const q = D.queries.find(x => x.q === qid); if (!q) return;
   document.getElementById('dTitle').textContent = `${qid} · ${D.meta.benchmark}`;
   const metricsRows = D.metrics.filter(x => D.configs.some(c => q.cells[c.id]?.values?.[x.key])).map(x => {
-    const b = q.cells[D.baseline]?.values?.[x.key]?.median;
-    return `<tr><td>${esc(x.label)}</td>${D.configs.map(c => { const v = q.cells[c.id]?.values?.[x.key]; const r = q.cells[c.id]?.ratios?.[x.key];
-      return `<td class="num">${fmt(v?.median, x.kind)}${c.id !== D.baseline ? '<br>' + delta(r?.ratio, r?.significant) : ''}<div class="ci">${v ? fmt(v.min, x.kind) + ' – ' + fmt(v.max, x.kind) : ''}</div></td>`; }).join('')}</tr>`;
+    const b = q.cells[state.ref]?.values?.[x.key]?.median;
+    return `<tr><td>${esc(x.label)}</td>${D.configs.map(c => { const v = q.cells[c.id]?.values?.[x.key]; const r = ratio(q, c.id, x.key);
+      return `<td class="num">${fmt(v?.median, x.kind)}${c.id !== state.ref ? '<br>' + delta(r?.ratio, r?.significant) : ''}<div class="ci">${v ? fmt(v.min, x.kind) + ' – ' + fmt(v.max, x.kind) : ''}</div></td>`; }).join('')}</tr>`;
   }).join('');
   const status = D.configs.map(c => { const s = q.cells[c.id]; if (!s) return '';
     return `<div class="small"><span class="dot" style="background:${color[c.id]}"></span><b>${esc(c.id)}</b>: ${esc(s.status)}${s.validation ? ` · answer ${esc(s.validation)}` : ''}${s.validation_detail ? ` (${esc(s.validation_detail)})` : ''} · ${s.rows ?? '–'} rows · plan <code>${esc(s.plan_hash || '–')}</code>${s.override ? ` · override: ${esc(s.override)}` : ''}${s.error ? `<pre>${esc(s.error)}</pre>` : ''}</div>`; }).join('');
-  const cmp = state.cmp || D.baseline;
-  const pa = D.plans[qid]?.[D.baseline] || '', pb = D.plans[qid]?.[cmp] || '';
+  const cmp = state.cmp || state.ref;
+  const pa = D.plans[qid]?.[state.ref] || '', pb = D.plans[qid]?.[cmp] || '';
   let planHtml = '<div class="muted small">no plan captured</div>';
-  if (pa && cmp !== D.baseline) { const [x, y] = diffLines(pa, pb);
-    planHtml = `<div class="grid g2"><div><div class="small"><b>${esc(D.baseline)}</b></div><pre>${x}</pre></div><div><div class="small"><b>${esc(cmp)}</b></div><pre>${y}</pre></div></div>`;
+  if (pa && cmp !== state.ref) { const [x, y] = diffLines(pa, pb);
+    planHtml = `<div class="grid g2"><div><div class="small"><b>${esc(state.ref)}</b></div><pre>${x}</pre></div><div><div class="small"><b>${esc(cmp)}</b></div><pre>${y}</pre></div></div>`;
   } else if (pa) planHtml = `<pre>${esc(pa)}</pre>`;
   document.getElementById('dBody').innerHTML = `
     <div class="card flat">${status}</div>
     <h2>Runs <span class="hint">every measured execution (${esc(M[state.metric].label)})</span></h2><div class="card"><div class="chart" id="runsChart" style="height:240px"></div></div>
     <h2>All metrics <span class="hint">median, change vs baseline, min – max</span></h2>
     <table class="t"><thead><tr><th>metric</th>${D.configs.map(c => `<th class="num"><span class="dot" style="background:${color[c.id]}"></span>${esc(c.id)}</th>`).join('')}</tr></thead><tbody>${metricsRows}</tbody></table>
-    <h2>Plan <span class="hint">${cmp !== D.baseline ? 'lines only in one plan are highlighted' : ''}</span></h2>${planHtml}
+    <h2>Plan <span class="hint">${cmp !== state.ref ? 'lines only in one plan are highlighted' : ''}</span></h2>${planHtml}
     <h2>SQL</h2><pre>${esc(q.sql || '')}</pre>`;
   const mk = M[state.metric];
   BL.chart(document.getElementById('runsChart'), {type: 'scatter', data: {datasets: D.configs.map((c, i) => ({label: label(c),
