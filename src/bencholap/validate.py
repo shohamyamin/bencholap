@@ -73,7 +73,9 @@ def _rows_equal(a: list[Any], e: list[str | None]) -> bool:
 _ROWCOUNT = re.compile(r"^\(\d+ rows?\)$|^\d+ (?:rows?|record\(s\)) selected\.?$|^Elapsed:", re.IGNORECASE)
 _SEPARATOR = re.compile(r"^[-|+ \t]+$")
 _DASHES = re.compile(r"-+")
-_NOISE = re.compile(r"^(?:-+ OUTPUT Query \d+|INSERT \d+ \d+|(?:CREATE|DROP|SELECT) \d*)\s*$")
+_NOISE = re.compile(r"^(?:-+ OUTPUT Query \d+|INSERT \d+ \d+|(?:CREATE|DROP|SELECT) \d*)\s*$"
+                    r"|^(?:SQL\*Plus:|SQL>|Copyright \(c\)|Connected\.|Disconnected from|With the Partitioning"
+                    r"|Advanced Analytics and Real Application Testing)")
 
 
 def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
