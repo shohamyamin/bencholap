@@ -504,8 +504,14 @@ def profiles_check(repo_root: Path) -> None:
     for key, want in expected.items():
         if inputs[key].get("options") != want:
             problems.append(f"benchmark.yml input {key}: {inputs[key].get('options')} != {want}")
-        if form_opts.get(key) != want:
-            problems.append(f"issue form {key}: {form_opts.get(key)} != {want}")
+        # GitHub issue forms reserve the option "None"; the form says "defaults" instead
+        form_want = ["defaults" if w == "none" else w for w in want]
+        if form_opts.get(key) != form_want:
+            problems.append(f"issue form {key}: {form_opts.get(key)} != {form_want}")
+    for b in form["body"]:
+        for o in (b.get("attributes") or {}).get("options", []) or []:
+            if str(o).strip().lower() == "none":
+                problems.append(f"issue form {b.get('id')}: option 'None' is reserved by GitHub")
     for p in problems:
         click.echo(p)
     if problems:
