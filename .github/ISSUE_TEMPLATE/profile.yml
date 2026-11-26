@@ -1,0 +1,44 @@
+name: 🖥️ New cluster profile or settings variant
+description: Propose a new place to run benchmarks (hardware, workers) or a new reviewed set of Trino settings.
+title: "Profile: "
+labels: ["profile"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Requests can only use reviewed **cluster profiles** (`src/bencholap/profiles/clusters/`) and
+        **settings variants** (`src/bencholap/profiles/variants/`). Describe what you need here, or open a pull
+        request with the new file directly; maintainers review both.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What do you want to add?
+      options:
+        - Cluster profile (where and on what hardware Trino runs)
+        - Settings variant (session / catalog / config properties to compare)
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it needed?
+      description: What would you measure with it that the existing profiles or variants cannot?
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Proposed definition
+      description: Hardware, number of workers, memory per node and scale factors, or the properties of the variant.
+      render: yaml
+      placeholder: |
+        name: large-vm
+        runner: bencholap-large-vm
+        cluster: {type: docker, workers: 0}
+        resources: {memory: 100g}
+        scale_factors: [1, 10, 100]
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Who provides the hardware?
+      description: For cluster profiles. Self-hosted runner, cloud credits, sponsor... (see docs/funding.md)

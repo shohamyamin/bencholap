@@ -1,19 +1,28 @@
-name: Benchmark request
-description: Compare Trino builds on TPC-H / TPC-DS. A maintainer approves, the run happens on GitHub, results come back here.
+name: 📊 Benchmark request
+description: Compare Trino builds on TPC-H / TPC-DS. A maintainer approves it, it runs on GitHub, and the results are posted here.
 title: "Benchmark: "
 labels: ["benchmark"]
 body:
   - type: markdown
     attributes:
       value: |
-        Fill in what to compare. After you submit, a bot checks the request and comments what will run.
-        A maintainer starts it by adding the `benchmark: approved` label; results are posted to this issue
-        and published on the results site.
+        ## How it works
+        1. **Fill in the form** and submit. A bot checks the request and comments exactly what will run (or what to fix).
+        2. **A maintainer approves** it by adding the `benchmark: approved` label.
+        3. **It runs on GitHub.** The bot links the workflow run, then posts the results here with a link to the
+           interactive report on the [results site](https://shohamyamin.github.io/bencholap/), and closes the issue.
 
-        **Targets** can be a release (`484`), a published image (`image:ghcr.io/you/trino:tag`),
-        a fork branch or commit (`github:you/trino@my-branch`), a GitHub URL
-        (`https://github.com/you/trino/tree/my-branch`), or a pull request (`pr:12345`, and `pr-base:12345`
-        for its merge base). Compare against the commit your change is based on, not against an unrelated release.
+        ### What can I compare?
+        | target | example |
+        |---|---|
+        | a Trino release | `484` |
+        | a published image | `image:ghcr.io/you/trino:my-tag` |
+        | a fork branch or commit | `github:you/trino@my-branch` or `https://github.com/you/trino/tree/my-branch` |
+        | a pull request and its merge base | `pr:12345` and `pr-base:12345` |
+
+        > [!TIP]
+        > Compare against the commit your change is based on (for a PR: `pr-base:<n>`), not against an unrelated
+        > release. Branches and PRs are built from source, which takes a while; a published image avoids the build.
   - type: input
     id: baseline
     attributes:

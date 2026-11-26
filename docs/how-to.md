@@ -33,7 +33,9 @@ the approval.
 
 The bot comments when the run starts (with a link to the workflow) and when it finishes:
 the summary table, significant per-query changes, failures, and a link to the full report on
-the results site, for example `https://<owner>.github.io/bencholap/runs/<run_id>/index.html`.
+the results site, for example `https://<owner>.github.io/bencholap/runs/<run_id>/index.html`,
+and closes the issue. A failed run leaves the issue open (label `benchmark: failed`); fix the
+request and re-approve it.
 
 Building a branch or PR from source takes a long time on a free runner. If you publish an
 image of your branch and use `image:...`, nothing is built.

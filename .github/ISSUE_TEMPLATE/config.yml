@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📈 Results site
+    url: https://shohamyamin.github.io/bencholap/
+    about: Browse published runs, release history and per-query comparisons.
+  - name: 📖 How to benchmark a change
+    url: https://github.com/shohamyamin/bencholap/blob/main/docs/how-to.md
+    about: Step-by-step guide to requesting a run and reading the report.

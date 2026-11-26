@@ -1,0 +1,27 @@
+name: ✨ Feature request
+description: Suggest an improvement (new engine, benchmark, metric, report view, ...).
+title: "Feature: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The problem or question you want bencholap to answer.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed solution
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New engine or connector
+        - New benchmark or dataset layout
+        - Metrics and statistics
+        - Report and results site
+        - Workflows and automation
+        - Other

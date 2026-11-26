@@ -110,8 +110,9 @@ overrides and variants.
 
 Nobody needs to run anything locally. To benchmark a change, open a **Benchmark request**
 issue; a maintainer approves it with the `benchmark: approved` label; the run happens on
-GitHub; the results are posted back to the issue and published on the results site
-(GitHub Pages). Details: [docs/how-to.md](docs/how-to.md).
+GitHub; the results are posted back to the issue, the issue is closed, and the run is
+published on the results site (GitHub Pages). Other templates: bug report, feature request,
+and new cluster profile / settings variant. Details: [docs/how-to.md](docs/how-to.md).
 
 Requests only choose from reviewed options (`src/bencholap/profiles/`): cluster profiles
 (where Trino runs and how many nodes), repetition presets and settings variants. New options

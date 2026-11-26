@@ -246,4 +246,8 @@ jobs:
             gh issue edit "$issue" -R "$GITHUB_REPOSITORY" --remove-label "benchmark: running" || true
             if [ "$BENCH" = "success" ]; then label="benchmark: done"; else label="benchmark: failed"; fi
             gh issue edit "$issue" -R "$GITHUB_REPOSITORY" --add-label "$label" || true
+            # a finished benchmark closes its request; a failed one stays open so it can be fixed and re-approved
+            if [ "$BENCH" = "success" ]; then
+              gh issue close "$issue" -R "$GITHUB_REPOSITORY" --reason completed || true
+            fi
           fi
