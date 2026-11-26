@@ -19,7 +19,7 @@ from .stats import summarize
 from .util import PACKAGE_DIR, log, run, sha256_text, stable_hash, write_json
 
 RESULTS_SCHEMA_VERSION = 1
-RESULT_ROWS_KEPT = 300
+RESULT_ROWS_KEPT = 1000
 
 
 

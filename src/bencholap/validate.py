@@ -54,6 +54,8 @@ def _cells_equal(actual: Any, expected: str | None) -> bool:
     if expected is None:
         return actual is None
     if actual is None:
+        return expected == "-"  # a few answer files print NULL strings as "-"
+    if actual is None:
         return False
     if isinstance(actual, float):
         e = _num(expected)
@@ -80,8 +82,11 @@ def _fixed_width_cells(line: str, spans: list[tuple[int, int]]) -> list[str]:
     a column belongs to that column."""
     chunks = [(m.start(), m.group(0)) for m in re.finditer(r"\S+(?: \S+)*", line)]
     starts = [a for a, _ in spans]
-    if len(chunks) == len(spans) and all(abs(c[0] - a) <= 1 or k == 0 for k, (c, a) in enumerate(zip(chunks, starts))):
-        return [c[1] for c in chunks]  # every column present where expected
+    def fits(k: int, pos: int, text: str) -> bool:  # numbers are right aligned, text is left aligned
+        upper = starts[k + 1] if k + 1 < len(starts) else 10**9
+        return starts[k] - 3 <= pos and pos + len(text) <= upper
+    if len(chunks) == len(spans) and all(fits(k, pos, text) for k, (pos, text) in enumerate(chunks)):
+        return [c[1] for c in chunks]  # every column present in its own column range
     cells = [[] for _ in spans]
     for m in re.finditer(r"\S+", line):
         k = max((j for j, a in enumerate(starts) if a <= m.start() + 1), default=0)

@@ -373,9 +373,15 @@ Findings that shaped the implementation:
   by `scripts/generate-queries/tpcds_qualification.py`. Parameters were cross-checked
   against DuckDB's TPC-DS queries. TPC-H uses `qgen -d` per scale factor (Q11 depends on SF).
 - **Overrides.** Trino needs 1 TPC-H override (Q15: no column list in CREATE VIEW, CTE
-  form instead) and 10 TPC-DS overrides (implicit varchar-to-date coercion, `date + int`,
-  and an out-of-scope `v1.` reference in Q47/Q57's ORDER BY). All 22 + 99 queries plan on
-  Trino 484 (`bencholap check-sql`).
+  form instead) and 14 TPC-DS overrides: implicit varchar-to-date coercion, `date + int`,
+  an out-of-scope `v1.` reference in Q47/Q57's ORDER BY, and integer division in Q21, Q34,
+  Q73, Q78 and Q83 (Trino truncates `int / int`; the official answers assume exact division,
+  so the dividend is cast to decimal as in Trino's own benchmark queries). The division
+  cases were found by the answer validation, not by planning.
+- **Answer validation.** All 22 TPC-H answers match. For TPC-DS, two answers cannot be used
+  with tpcgen-cli data (Q85, Q93: the generated `reason` table maps descriptions to
+  different keys than the data behind the kit's answer set); they are marked
+  `no-reference` with the reason, and still compared across configurations.
 - **Validated layouts.** TPC-H: unpartitioned CTAS (Trino benchto). TPC-DS: unpartitioned
   (Trino benchto) or fact tables identity-partitioned by their date key (LST-Bench Trino
   scripts and Databricks spark-sql-perf agree on the same seven columns). No published
@@ -388,6 +394,12 @@ Findings that shaped the implementation:
   `config.properties`; reports list such differences per configuration.
 - **Sweeps.** `bencholap sweep --every 10` currently resolves to 484, 474, ..., 414. All
   versions run in one job on one machine, so they are comparable with each other.
+
+Shared runs (first GitHub runs, November 2026): benchmark requests come from an issue form
+(approved by a maintainer with a label) or the workflow form; they can only choose reviewed
+cluster profiles, presets and variants. Results go to the `results` branch and the site at
+https://shohamyamin.github.io/bencholap/. A sweep of every 10th release (414..484) on one
+GitHub runner showed TPC-H SF1 getting about 29% faster (geomean) from 414 to 484.
 
 Not done yet (next steps): storage-level request logging and pruning analysis (section
 3.5), a second engine (DuckDB or Spark via SQLGlot translation), Iceberg ScanReport
