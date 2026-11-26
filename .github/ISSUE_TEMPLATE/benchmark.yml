@@ -51,14 +51,37 @@ body:
       options:
         - tpch (TPC-H derived, 22 queries)
         - tpcds (TPC-DS derived, 99 queries)
+        - clickbench (ClickBench derived, 43 queries on one wide table)
       default: 0
     validations:
       required: true
   - type: dropdown
+    id: layouts
+    attributes:
+      label: Table layouts
+      description: >
+        How the tables are written (pick one or more; every target runs on each).
+        TPC-H: unpartitioned, date-sorted, date-partitioned, key-bloom-filters.
+        TPC-DS: unpartitioned, date-partitioned.
+        ClickBench: unpartitioned, sorted, date-partitioned, bloom-filters.
+        Only "unpartitioned" (and TPC-DS date-partitioned) follow published setups; the others are
+        bencholap layouts for testing partition, min/max and bloom-filter pruning.
+      multiple: true
+      options:
+        - unpartitioned
+        - date-partitioned
+        - date-sorted
+        - key-bloom-filters
+        - sorted
+        - bloom-filters
+      default: 0
+  - type: dropdown
     id: scale_factor
     attributes:
       label: Scale factor
-      description: Must be supported by the cluster profile (GitHub runners support SF1).
+      description: >
+        Must be supported by the cluster profile. GitHub runners: SF1 for TPC-H / TPC-DS, SF1 or SF10 for
+        ClickBench (SF N = first N million rows of ClickBench's 100 files; only SF100 is the full dataset).
       options: ["1", "10", "100"]
       default: 0
     validations:

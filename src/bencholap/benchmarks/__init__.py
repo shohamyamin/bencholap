@@ -36,13 +36,15 @@ class Layout:
     sources: tuple[dict, ...]
     analyze: bool
     tables: dict[str, TableLayout]
+    basis: str = ""   # why a layout that is not a published setup exists
 
     def table(self, name: str) -> TableLayout:
         return self.tables.get(name, TableLayout())
 
     def as_dict(self) -> dict:
         return {
-            "name": self.name, "description": self.description.strip(), "validated": self.validated,
+            "name": self.name, "description": " ".join(self.description.split()), "validated": self.validated,
+            "basis": " ".join(self.basis.split()),
             "sources": list(self.sources), "analyze": self.analyze,
             "tables": {t: tl.as_dict() for t, tl in self.tables.items()},
         }
@@ -83,6 +85,7 @@ class Benchmark:
     generator: dict
     supported_sf: tuple[str, ...] = ()
     answer_exceptions: dict | None = None
+    staging: dict | None = None   # custom raw table DDL / load SELECT files
 
     @property
     def dir(self) -> Path:
@@ -149,8 +152,11 @@ def load(name: str) -> Benchmark:
         unknown = set(tables) - set(d["tables"])
         if unknown:
             raise ValueError(f"layout {lname} references unknown tables {unknown}")
+        if not ld.get("validated") and not ld.get("basis"):
+            raise ValueError(f"{name} layout {lname}: a layout that is not a published setup needs a 'basis'")
         layouts[lname] = Layout(lname, ld.get("description", ""), bool(ld.get("validated")),
-                                tuple(ld.get("sources", [])), bool(ld.get("analyze", True)), tables)
+                                tuple(ld.get("sources") or []), bool(ld.get("analyze", True)), tables,
+                                ld.get("basis", ""))
     answers = d.get("answers") or {}
     return Benchmark(
         name=d["name"], title=d["title"], tables=tuple(d["tables"]), queries=tuple(d["queries"]),
@@ -159,6 +165,7 @@ def load(name: str) -> Benchmark:
         generator=d.get("generator", {}),
         supported_sf=tuple(format_sf(x) for x in d["scale_factors"]),
         answer_exceptions=answers.get("exceptions"),
+        staging=d.get("staging"),
     )
 
 

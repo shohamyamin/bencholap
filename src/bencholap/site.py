@@ -42,13 +42,14 @@ def _series(runs: list[tuple[Path, dict]]) -> list[dict]:
     meta: dict[tuple, dict] = {}
     for _, r in sorted(runs, key=lambda x: x[1]["started_at"]):
         b = r["benchmark"]
-        key = (r["machine"]["fingerprint"], b["name"], b["scale_factor"], b["layout"])
-        meta[key] = {"machine": r["machine"]["display"], "fingerprint": r["machine"]["fingerprint"],
-                     "profile": r["machine"].get("profile"), "benchmark": b["title"],
-                     "scale_factor": b["scale_factor"], "layout": b["layout"]}
         for c in r["configurations"]:
             if c.get("start_error") or c.get("variant") != "default":
                 continue
+            layout = c.get("layout") or b["layout"]
+            key = (r["machine"]["fingerprint"], b["name"], b["scale_factor"], layout)
+            meta[key] = {"machine": r["machine"]["display"], "fingerprint": r["machine"]["fingerprint"],
+                         "profile": r["machine"].get("profile"), "benchmark": b["title"],
+                         "scale_factor": b["scale_factor"], "layout": layout}
             if (c.get("source") or {}).get("kind") != "release" or c.get("version_number") is None:
                 continue
             per_q = {}
@@ -56,7 +57,8 @@ def _series(runs: list[tuple[Path, dict]]) -> list[dict]:
                 if q["config_id"] == c["id"] and q["status"] == "ok" and q["summary"].get("wall_ms"):
                     per_q[q["query"]] = (q["summary"]["wall_ms"]["median"],
                                          (q["summary"].get("total_cpu_ms") or {}).get("median"))
-            groups[key][c["version_number"]] = {"run_id": r["run_id"], "q": per_q, "started_at": r["started_at"]}
+            groups.setdefault(key, {})[c["version_number"]] = {"run_id": r["run_id"], "q": per_q,
+                                                                "started_at": r["started_at"]}
     series = []
     for key, points in groups.items():
         common = set.intersection(*(set(p["q"]) for p in points.values()))

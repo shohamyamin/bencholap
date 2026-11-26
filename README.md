@@ -25,9 +25,16 @@ and the site are shared.
   normalizations are applied (see the header of every query file). Engines that cannot run
   a canonical query use an explicit override file with a stated reason; every override
   used is shown in the report.
-- **Validated table layouts.** Tables are built exactly like published setups and the
-  source is recorded: unpartitioned CTAS (Trino's own benchmark setup) and date-partitioned
-  TPC-DS fact tables (LST-Bench, Databricks spark-sql-perf). `bencholap layouts` lists them.
+- **Three benchmarks.** TPC-H, TPC-DS and ClickBench (43 queries on one wide web-analytics
+  table, ClickBench's own Trino queries and load; SF N = first N of its 100 files).
+- **Table layouts.** Published setups (unpartitioned CTAS as in Trino's own benchmarks and
+  ClickBench's Iceberg setup; date-partitioned TPC-DS fact tables from LST-Bench and
+  spark-sql-perf) plus clearly marked bencholap layouts for pruning tests: sorted data
+  (min/max row-group pruning), date partitioning (partition pruning) and Parquet bloom filters.
+  One run can cover several layouts. `bencholap layouts` lists them with their sources.
+- **Pruning metrics.** Besides time, CPU, memory and input bytes, each query records what the
+  Iceberg scan did: data files and manifests scanned or skipped, bytes read from storage or
+  from Trino's cache, Parquet row-selection pushdowns and dynamic filters.
 - **Write once, read by everyone.** Data is generated with `tpcgen-cli` (byte-identical to
   dbgen/dsdgen), loaded once by a pinned Trino into Iceberg, and then read by every engine
   and version under test.

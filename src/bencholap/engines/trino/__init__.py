@@ -76,7 +76,40 @@ def extract_stats(info: dict) -> dict[str, Any]:
         })
     if inputs:
         out["inputs"] = inputs
+    out.update(_scan_metrics(qs))
     return {k: v for k, v in out.items() if v is not None}
+
+
+# Connector metrics reported by table scans (Iceberg connector in recent Trino versions),
+# summed over all scans of the query. They show what pruning did: how many data files
+# and manifests were read or skipped, and how many bytes came from storage or the cache.
+_SCAN_METRICS = {
+    "dataFiles": "scan_data_files",
+    "dataFileSizeBytes": "scan_data_file_bytes",
+    "dataManifests": "scan_data_manifests",
+    "skippedDataManifests": "scan_skipped_data_manifests",
+    "positionalDeleteFiles": "scan_positional_delete_files",
+    "equalityDeleteFiles": "scan_equality_delete_files",
+    "deletionVectorFiles": "scan_deletion_vector_files",
+    "bytesReadExternally": "scan_bytes_read_storage",
+    "bytesReadFromCache": "scan_bytes_read_cache",
+    "ParquetSelectedPositionsPushdowns": "scan_parquet_selected_positions_pushdowns",
+}
+
+
+def _scan_metrics(qs: dict) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for op in qs.get("operatorSummaries") or []:
+        for name, m in (op.get("connectorMetrics") or {}).items():
+            key = _SCAN_METRICS.get(name)
+            total = m.get("total") if isinstance(m, dict) else None
+            if key and isinstance(total, (int, float)):
+                out[key] = out.get(key, 0) + total
+    df = qs.get("dynamicFiltersStats") or {}
+    if df.get("totalDynamicFilters") is not None:
+        out["dynamic_filters"] = df.get("totalDynamicFilters")
+        out["dynamic_filters_completed"] = df.get("dynamicFiltersCompleted")
+    return out
 
 
 class TrinoSession:

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import requests
 from pyarrow import fs as pafs
 
 from . import benchmarks, stack
@@ -56,6 +57,10 @@ def list_manifests() -> list[dict]:
     return [read_json(p) for p in sorted(d.glob("*.json"))] if d.exists() else []
 
 
+def _strip_comments(sql: str) -> str:
+    return "\n".join(ln for ln in sql.splitlines() if not ln.lstrip().startswith("--")).strip().rstrip(";")
+
+
 def _trino_type(t: pa.DataType) -> str:
     if pa.types.is_int32(t):
         return "integer"
@@ -75,15 +80,56 @@ def _trino_type(t: pa.DataType) -> str:
 
 
 def generate(bench: benchmarks.Benchmark, sf: str, out: Path) -> Path:
-    if out.exists() and any(out.glob("*.parquet")):
-        log.info("reusing generated data in %s", out)
+    """Generated (TPC) or downloaded (ClickBench) raw Parquet files, one directory per table."""
+    if out.exists() and any(out.rglob("*.parquet")):
+        log.info("reusing raw data in %s", out)
         return out
     out.mkdir(parents=True, exist_ok=True)
-    tool, version = bench.generator["tool"], bench.generator["version"]
+    g = bench.generator
+    if g["tool"] == "download":
+        tdir = out / g["table"]
+        tdir.mkdir(exist_ok=True)
+        n = int(float(sf))
+        log.info("downloading %d %s file(s)", n, bench.name)
+        for i in range(n):
+            url = g["url"].format(i=i)
+            target = tdir / url.rsplit("/", 1)[-1]
+            if target.exists():
+                continue
+            with requests.get(url, stream=True, timeout=600) as r:
+                r.raise_for_status()
+                tmp = target.with_suffix(".part")
+                with open(tmp, "wb") as f:
+                    f.writelines(r.iter_content(1 << 20))
+                tmp.rename(target)
+        return out
+    tool, version = g["tool"], g["version"]
     log.info("generating %s SF%s with %s %s", bench.name, sf, tool, version)
     run(["uvx", "--from", f"{tool}=={version}", tool, bench.name, "parquet", "-s", sf,
          "-o", str(out), "--tables", ",".join(bench.tables)])
+    for table in bench.tables:  # one directory per table, like the downloaded datasets
+        (out / table).mkdir(exist_ok=True)
+        (out / f"{table}.parquet").rename(out / table / f"{table}.parquet")
     return out
+
+
+def _table_props(tl: benchmarks.TableLayout) -> list[str]:
+    def arr(cols):
+        return "ARRAY[" + ", ".join(f"'{c}'" for c in cols) + "]"
+    props = ["format = 'PARQUET'", "format_version = 2"]
+    if tl.partitioning:
+        props.append(f"partitioning = {arr(tl.partitioning)}")
+    if tl.sorted_by:
+        props.append(f"sorted_by = {arr(tl.sorted_by)}")
+    if tl.bloom_filter_columns:
+        props.append(f"parquet_bloom_filter_columns = {arr(tl.bloom_filter_columns)}")
+    return props
+
+
+def build_many(benchmark: str, sf: str, layouts: list[str | None], **kw) -> list[dict]:
+    """Build several layouts of one benchmark and scale factor from the same raw data."""
+    keep = kw.pop("keep_raw", False)
+    return [build(benchmark, sf, lay, keep_raw=keep or i < len(layouts) - 1, **kw) for i, lay in enumerate(layouts)]
 
 
 def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFAULT_LOADER,
@@ -105,12 +151,19 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
     raw_prefix = f"{stack.STACK.raw_bucket}/{bench.name}/sf{sf}"
     schemas: dict[str, pa.Schema] = {}
     for table in bench.tables:
-        src = local / f"{table}.parquet"
-        schemas[table] = pq.read_schema(src)
-        dst = f"{raw_prefix}/{table}/{table}.parquet"
-        if s3.get_file_info(dst).type != pafs.FileType.File:
-            pafs.copy_files(str(src), dst, destination_filesystem=s3)
+        files = sorted((local / table).glob("*.parquet"))
+        if not files:
+            raise RuntimeError(f"no raw data for {table} in {local / table}")
+        schemas[table] = pq.read_schema(files[0])
+        for src in files:
+            dst = f"{raw_prefix}/{table}/{src.name}"
+            if s3.get_file_info(dst).type != pafs.FileType.File:
+                pafs.copy_files(str(src), dst, destination_filesystem=s3)
     log.info("raw data uploaded to s3://%s", raw_prefix)
+    staging_ddl = staging_select = None
+    if bench.staging:
+        staging_ddl = (bench.dir / bench.staging["ddl"]).read_text()
+        staging_select = (bench.dir / bench.staging["select"]).read_text()
 
     engine = get_engine("trino")
     target = engine.resolve(loader)
@@ -128,23 +181,20 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
         q(f"CREATE SCHEMA IF NOT EXISTS iceberg.{ds.schema}")
         tables = {}
         for table in bench.tables:
-            cols = ", ".join(f"{f.name} {_trino_type(f.type)}" for f in schemas[table])
             q(f"DROP TABLE IF EXISTS {staging}.{table}")
-            q(f"CREATE TABLE {staging}.{table} ({cols}) WITH (format = 'PARQUET', "
-              f"external_location = 's3://{raw_prefix}/{table}/')")
-            tl = lay.table(table)
-            props = ["format = 'PARQUET'", "format_version = 2"]
-            if tl.partitioning:
-                props.append("partitioning = ARRAY[" + ", ".join(f"'{c}'" for c in tl.partitioning) + "]")
-            if tl.sorted_by:
-                props.append("sorted_by = ARRAY[" + ", ".join(f"'{c}'" for c in tl.sorted_by) + "]")
-            if tl.bloom_filter_columns:
-                props.append("parquet_bloom_filter_columns = ARRAY["
-                             + ", ".join(f"'{c}'" for c in tl.bloom_filter_columns) + "]")
+            location = f"s3://{raw_prefix}/{table}/"
+            if staging_ddl:
+                q(_strip_comments(staging_ddl).format(table=f"{staging}.{table}", location=location))
+                select = _strip_comments(staging_select).format(source=f"{staging}.{table}")
+            else:
+                cols = ", ".join(f"{f.name} {_trino_type(f.type)}" for f in schemas[table])
+                q(f"CREATE TABLE {staging}.{table} ({cols}) WITH (format = 'PARQUET', "
+                  f"external_location = '{location}')")
+                select = f"SELECT * FROM {staging}.{table}"
+            props = _table_props(lay.table(table))
             t0 = time.time()
-            log.info("loading %s.%s", ds.schema, table)
-            q(f"CREATE TABLE iceberg.{ds.schema}.{table} WITH ({', '.join(props)}) "
-              f"AS SELECT * FROM {staging}.{table}")
+            log.info("loading %s.%s (%s)", ds.schema, table, ", ".join(props[2:]) or "no layout properties")
+            q(f"CREATE TABLE iceberg.{ds.schema}.{table} WITH ({', '.join(props)}) AS {select}")
             if lay.analyze:
                 q(f"ANALYZE iceberg.{ds.schema}.{table}")
             load_s = time.time() - t0

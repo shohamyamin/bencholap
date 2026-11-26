@@ -23,8 +23,11 @@ on:
         default: ""
       benchmark:
         type: choice
-        options: [tpch, tpcds]
+        options: [tpch, tpcds, clickbench]
         default: tpch
+      layouts:
+        description: "Table layouts, comma separated (empty = benchmark default; see `bencholap layouts`), e.g. unpartitioned,sorted"
+        default: ""
       scale_factor:
         type: choice
         options: ["1", "10", "100"]
@@ -90,6 +93,7 @@ jobs:
           REQ_SCALE_FACTOR: ${{ inputs.scale_factor }}
           REQ_PROFILE: ${{ inputs.profile }}
           REQ_PRESET: ${{ inputs.preset }}
+          REQ_LAYOUTS: ${{ inputs.layouts }}
           REQ_QUERIES: ${{ inputs.queries }}
           REQ_MATCH: ${{ inputs.match }}
           REQ_VARIANTS: ${{ inputs.variants }}

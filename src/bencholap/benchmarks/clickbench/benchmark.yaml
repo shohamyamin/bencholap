@@ -1,0 +1,73 @@
+name: clickbench
+title: ClickBench (derived)
+# ClickBench: one wide table of web analytics events (hits) and 43 queries.
+spec: https://github.com/ClickHouse/ClickBench
+tables: [hits]
+queries: [q00, q01, q02, q03, q04, q05, q06, q07, q08, q09, q10, q11, q12, q13, q14, q15, q16, q17, q18, q19,
+          q20, q21, q22, q23, q24, q25, q26, q27, q28, q29, q30, q31, q32, q33, q34, q35, q36, q37, q38, q39,
+          q40, q41, q42]
+# Canonical queries: ClickBench's own Trino queries (queries/any, imported by scripts/fetch_clickbench.py).
+# Scale factor N = the first N of the 100 files of ClickBench's partitioned dataset (about N million
+# rows). Only SF100 is the full ClickBench dataset; smaller scale factors are subsets for quick runs.
+scale_factors: [1, 10, 100]
+# ClickBench publishes no answer sets: results are compared between configurations only.
+generator:
+  tool: download
+  version: athena_partitioned
+  url: https://datasets.clickhouse.com/hits_compatible/athena_partitioned/hits_{i}.parquet
+  table: hits
+# Loading follows ClickBench's Trino setup: a raw table over the Parquet files (staging.sql) and
+# the hits view that converts the Unix-second timestamps (load.sql).
+staging: {ddl: staging.sql, select: load.sql}
+
+default_layout: unpartitioned
+layouts:
+  unpartitioned:
+    description: >
+      One unpartitioned Iceberg table written with a single INSERT and default settings, as in
+      ClickBench's presto-iceberg setup.
+    validated: true
+    sources:
+      - name: ClickBench presto-iceberg (create.sql, insert.sql, load)
+        url: https://github.com/ClickHouse/ClickBench/tree/main/presto-iceberg
+    analyze: true
+    tables: {}
+
+  sorted:
+    description: >
+      Rows sorted by ClickBench's primary key (CounterID, EventDate, UserID, EventTime, WatchID) when
+      written, so min/max statistics let scans skip row groups for the many queries that filter on
+      CounterID = 62 and an EventDate range. Trino sorts each written file; ranges can overlap between files.
+    validated: false
+    basis: >
+      The sort order is the primary key of ClickBench's reference ClickHouse table; applying it to an
+      Iceberg table is a bencholap layout for pruning tests, not a published ClickBench setup.
+    sources:
+      - name: ClickBench ClickHouse table definition (PRIMARY KEY)
+        url: https://github.com/ClickHouse/ClickBench/blob/main/clickhouse/create.sql
+    analyze: true
+    tables:
+      hits: {sorted_by: [counterid, eventdate, userid, eventtime, watchid]}
+
+  date-partitioned:
+    description: >
+      Identity partitioning by EventDate (one partition per day, 31 days in July 2013). Date-range
+      queries (Q36-Q42) can skip whole partitions during planning.
+    validated: false
+    basis: bencholap layout for partition-pruning tests, not a published ClickBench setup.
+    sources: []
+    analyze: true
+    tables:
+      hits: {partitioning: [eventdate]}
+
+  bloom-filters:
+    description: >
+      Unpartitioned and unsorted, with Parquet bloom filters on UserID, URLHash and RefererHash: the
+      point lookups of Q19 (UserID = ...) and Q40/Q41 (RefererHash / URLHash = ...) can skip row groups
+      whose min/max range contains the value but whose bloom filter does not.
+    validated: false
+    basis: bencholap layout for bloom-filter tests, not a published ClickBench setup.
+    sources: []
+    analyze: true
+    tables:
+      hits: {bloom_filter_columns: [userid, urlhash, refererhash]}

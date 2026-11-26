@@ -44,6 +44,7 @@ class Request:
     scale_factor: str = "1"
     profile: str = "gh-standard"
     preset: str = "standard"
+    layouts: list[str] = field(default_factory=list)
     queries: str = "all"
     match: str | None = None
     variants: str | None = None
@@ -85,8 +86,9 @@ def validate(req: Request) -> Request:
         if prof.get("status") != "available":
             errs.append(f"cluster profile `{req.profile}` is {prof.get('status')}: it has no hardware yet")
         req.scale_factor = benchmarks.format_sf(req.scale_factor)
-        if req.scale_factor not in [benchmarks.format_sf(s) for s in prof["scale_factors"]]:
-            errs.append(f"profile `{req.profile}` supports scale factors {prof['scale_factors']}, "
+        allowed = profiles.scale_factors(prof, req.benchmark)
+        if req.scale_factor not in allowed:
+            errs.append(f"profile `{req.profile}` supports scale factors {allowed} for {req.benchmark}, "
                         f"not {req.scale_factor}")
         if req.kind != "sweep" and len(req.targets) > prof.get("max_targets", 3):
             errs.append(f"profile `{req.profile}` allows at most {prof['max_targets']} targets")
@@ -104,6 +106,18 @@ def validate(req: Request) -> Request:
                 re.compile(req.match)
             except re.error as e:
                 errs.append(f"query filter is not a valid regular expression: {e}")
+    if isinstance(req.layouts, str):
+        req.layouts = [x for x in re.split(r"[,\s]+", req.layouts) if x]
+    req.layouts = list(dict.fromkeys(req.layouts or []))
+    if req.benchmark in benchmarks.available():
+        bench = benchmarks.load(req.benchmark)
+        req.layouts = req.layouts or [bench.default_layout]
+        unknown = [x for x in req.layouts if x not in bench.layouts]
+        if unknown:
+            errs.append(f"{req.benchmark} has no layout {', '.join(f'`{x}`' for x in unknown)}; "
+                        f"available: {', '.join(bench.layouts)}")
+        if len(req.layouts) > 4:
+            errs.append("at most 4 layouts per request")
     if not errs:
         try:
             bench = benchmarks.load(req.benchmark)
@@ -136,7 +150,7 @@ def to_run_config(req: Request) -> dict:
         "name": req.title or " vs ".join(req.targets),
         "kind": req.kind,
         "description": req.description,
-        "benchmark": req.benchmark, "scale_factor": req.scale_factor,
+        "benchmark": req.benchmark, "scale_factor": req.scale_factor, "layouts": req.layouts,
         "queries": req.queries or "all", "match": req.match,
         "warmup": preset["warmup"], "repetitions": preset["repetitions"], "rounds": preset["rounds"],
         "resources": prof["resources"], "cluster": prof["cluster"],
@@ -156,6 +170,7 @@ ISSUE_FIELDS = {
     "benchmark": "benchmark", "scale factor": "scale_factor", "cluster profile": "profile",
     "repetitions": "preset", "queries": "queries", "query filter": "match",
     "settings variants": "variants", "publish results": "publish", "what are you testing?": "description",
+    "table layouts": "layouts",
 }
 
 
@@ -183,6 +198,7 @@ def parse_issue(body: str, title: str | None = None, number: int | None = None,
         preset=first_word(v["preset"], "standard"),
         queries=v["queries"] or "all",
         match=v["match"],
+        layouts=[x.split()[0] for x in (v["layouts"] or "").split(",") if x.strip()],
         variants=None if (v["variants"] or "none").split()[0] in ("none", "defaults") else v["variants"].split()[0],
         publish=(v["publish"] or "yes").lower().startswith("yes"),
         title=(title or "")[:150] or None,
@@ -200,6 +216,11 @@ def describe(req: Request) -> str:
         shown = t[:120].replace("|", "\\|")  # keep the Markdown table intact
         lines.append(f"| {role} | `{shown}` |")
     lines.append(f"| benchmark | {req.benchmark} SF{req.scale_factor} |")
+    if not req.errors and req.benchmark in benchmarks.available():
+        bench = benchmarks.load(req.benchmark)
+        shown = [f"`{x}`" + ("" if bench.layouts[x].validated else " (bencholap layout)")
+                 for x in req.layouts if x in bench.layouts]
+        lines.append(f"| table layouts | {', '.join(shown)} |")
     if not req.errors:
         try:
             p = profiles.cluster(req.profile)

@@ -113,13 +113,20 @@ def _capture_plan(session, q: benchmarks.Query) -> dict | None:
     return {"hash": plan_hash(text), "text": text}
 
 
+def _dataset_summary(manifest: dict) -> dict:
+    return {k: v for k, v in manifest.items() if k != "tables"} | {
+        "tables": {t: {k: v for k, v in d.items() if k != "ddl"} for t, d in manifest["tables"].items()}}
+
+
 def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
     bench = benchmarks.load(cfg.benchmark)
-    ds = dataset.DatasetId(bench.name, cfg.scale_factor, cfg.layout)
-    manifest = dataset.get_manifest(ds)
-    if not manifest:
-        raise RuntimeError(f"dataset {ds.key} is not built; run `bencholap dataset build --benchmark "
-                           f"{bench.name} --sf {cfg.scale_factor} --layout {cfg.layout}` first")
+    manifests = {}
+    for lay in cfg.layouts:
+        ds = dataset.DatasetId(bench.name, cfg.scale_factor, lay)
+        manifests[lay] = dataset.get_manifest(ds)
+        if not manifests[lay]:
+            raise RuntimeError(f"dataset {ds.key} is not built; run `bencholap dataset build --benchmark "
+                               f"{bench.name} --sf {cfg.scale_factor} --layout {lay}` first")
     stack.ensure_up()
 
     started = time.time()
@@ -133,9 +140,11 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
     records: dict[tuple[str, str], QueryRecord] = {}
     timeout_session = {"query_max_execution_time": cfg.timeout}
 
+    multi_layout = len(cfg.layouts) > 1
     for rnd in range(cfg.rounds):
-        for t, v in cfg.configurations():
-            config_id = f"{t.name}/{v.name}"
+        for (t, v), lay in ((tv, lay) for tv in cfg.configurations() for lay in cfg.layouts):
+            manifest = manifests[lay]
+            config_id = f"{t.name}/{v.name}" + (f"/{lay}" if multi_layout else "")
             target = resolved[t.name]
             ov = merged_overrides(t, v)
             engine = get_engine(t.engine)
@@ -146,10 +155,10 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
             except Exception as e:  # noqa: BLE001
                 log.error("could not start %s: %s", config_id, e)
                 configurations.setdefault(config_id, {"id": config_id, "target": t.name, "variant": v.name,
-                                                      "start_error": str(e)[:2000]})
+                                                      "layout": lay, "start_error": str(e)[:2000]})
                 continue
             configurations[config_id] = {
-                "id": config_id, "target": t.name, "variant": v.name, "engine": t.engine,
+                "id": config_id, "target": t.name, "variant": v.name, "layout": lay, "engine": t.engine,
                 "target_spec": t.source, "version": target.version, "version_number": target.version_number,
                 "image": target.image, "source": target.source,
                 "variant_description": v.description, "overrides": ov.as_dict(),
@@ -208,9 +217,9 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
             "cluster": {k: v for k, v in cfg.cluster.items() if k not in ("deploy", "teardown", "url")},
             "resources": cfg.resources}),
         "benchmark": {"name": bench.name, "title": bench.title, "scale_factor": cfg.scale_factor,
-                      "layout": cfg.layout},
-        "dataset": {k: v for k, v in manifest.items() if k != "tables"} | {
-            "tables": {t: {k: v for k, v in d.items() if k != "ddl"} for t, d in manifest["tables"].items()}},
+                      "layout": ", ".join(cfg.layouts), "layouts": cfg.layouts},
+        "dataset": _dataset_summary(manifests[cfg.layouts[0]]),
+        "datasets": {lay: _dataset_summary(m) for lay, m in manifests.items()},
         "settings": {"warmup": cfg.warmup, "repetitions": cfg.repetitions, "rounds": cfg.rounds,
                      "timeout": cfg.timeout, "resources": cfg.resources, "cluster": cfg.cluster,
                      "queries": cfg.queries, "match": cfg.raw.get("match")},

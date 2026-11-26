@@ -45,3 +45,13 @@ def cluster(name: str) -> dict:
     if name not in clusters():
         raise ValueError(f"unknown cluster profile {name!r}; available: {', '.join(clusters())}")
     return clusters()[name]
+
+
+def scale_factors(profile: dict, benchmark: str) -> list[str]:
+    """Scale factors a profile allows for a benchmark (a list for all, or a map per benchmark)."""
+    from ..benchmarks import format_sf
+
+    sfs = profile["scale_factors"]
+    if isinstance(sfs, dict):
+        sfs = sfs.get(benchmark, [])
+    return [format_sf(x) for x in sfs]

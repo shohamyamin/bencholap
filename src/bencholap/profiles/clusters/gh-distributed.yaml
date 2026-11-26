@@ -8,6 +8,6 @@ status: available
 runner: ubuntu-24.04
 cluster: {type: docker, workers: 2}
 resources: {memory: 4g}
-scale_factors: [1]
+scale_factors: {tpch: [1], tpcds: [1], clickbench: [1]}   # per benchmark
 max_targets: 2
 hardware: {vcpus: 4, memory_gb: 16, kind: shared cloud VM}

@@ -296,6 +296,17 @@ METRICS = [
     ("spilled_bytes", "Spilled", "bytes"),
     ("output_positions", "Output rows", "count"),
     ("total_drivers", "Drivers", "count"),
+    # what pruning did (Iceberg scan metrics, recent Trino versions)
+    ("scan_data_files", "Data files scanned", "count"),
+    ("scan_data_file_bytes", "Data file bytes scanned", "bytes"),
+    ("scan_data_manifests", "Manifests scanned", "count"),
+    ("scan_skipped_data_manifests", "Manifests skipped", "count"),
+    ("scan_bytes_read_storage", "Bytes read from storage", "bytes"),
+    ("scan_bytes_read_cache", "Bytes read from cache", "bytes"),
+    ("scan_parquet_selected_positions_pushdowns", "Parquet row-selection pushdowns", "count"),
+    ("scan_positional_delete_files", "Positional delete files", "count"),
+    ("scan_equality_delete_files", "Equality delete files", "count"),
+    ("dynamic_filters", "Dynamic filters", "count"),
 ]
 BOOTSTRAP_METRICS = {"wall_ms", "total_cpu_ms", "total_scheduled_ms", "elapsed_ms"}
 

@@ -16,8 +16,11 @@ on:
         default: latest
       benchmark:
         type: choice
-        options: [tpch, tpcds]
+        options: [tpch, tpcds, clickbench]
         default: tpch
+      layouts:
+        description: Table layouts, comma separated (empty = benchmark default)
+        default: ""
       profile:
         type: choice
         options: [gh-standard, gh-distributed]
@@ -50,7 +53,8 @@ jobs:
           BENCH: ${{ inputs.benchmark }}
           PROFILE: ${{ inputs.profile }}
           PRESET: ${{ inputs.preset }}
-        run: uv run bencholap request sweep --every "$EVERY" ${FROM:+--from "$FROM"} --to "$TO" -b "$BENCH" --profile "$PROFILE" --preset "$PRESET"
+          LAYOUTS: ${{ inputs.layouts }}
+        run: uv run bencholap request sweep --every "$EVERY" ${FROM:+--from "$FROM"} --to "$TO" -b "$BENCH" --profile "$PROFILE" --preset "$PRESET" --layouts "$LAYOUTS"
   run:
     needs: plan
     uses: ./.github/workflows/benchmark.yml

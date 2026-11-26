@@ -16,6 +16,22 @@ Go to **Issues → New issue → Benchmark request** and fill in the form:
 | Repetitions | `standard` |
 | Query filter | `avg\s*\(` (27 TPC-DS queries) |
 
+**Table layouts** (pick one or more; every target runs on each): `unpartitioned` is the
+published setup for every benchmark; TPC-DS also has the published `date-partitioned`. To see how
+a Trino version deals with organized data, add bencholap layouts:
+
+| benchmark | layout | what it tests |
+|---|---|---|
+| TPC-H | `date-sorted` | lineitem/orders sorted by date: min/max row-group pruning |
+| TPC-H | `date-partitioned` | monthly partitions: partition pruning at planning time |
+| TPC-H | `key-bloom-filters` | bloom filters on join keys, used by dynamic filters |
+| ClickBench | `sorted` | ClickBench's primary key order: row-group pruning for CounterID / EventDate filters |
+| ClickBench | `date-partitioned` | daily partitions: Q36-Q42 date ranges |
+| ClickBench | `bloom-filters` | UserID / URLHash / RefererHash point lookups (Q19, Q40, Q41) |
+
+In the report, pick the metrics "Data files scanned", "Manifests skipped", "Bytes read from
+storage" or "Input rows" to see the pruning, not only the time.
+
 Accepted targets: a release (`484`), a published image (`image:ghcr.io/you/trino:tag`), a fork
 branch or commit (`github:you/trino@branch`, or the GitHub URL of a branch or commit), a pull
 request (`pr:N`) and its merge base (`pr-base:N`). Compare against the commit your change is

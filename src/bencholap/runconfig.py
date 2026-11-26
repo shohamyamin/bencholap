@@ -5,7 +5,8 @@ Example::
     name: trino-483-vs-484
     benchmark: tpch
     scale_factor: 1
-    layout: unpartitioned          # a validated layout from the benchmark definition
+    layout: unpartitioned          # a layout from the benchmark definition (`bencholap layouts`)
+    # layouts: [unpartitioned, sorted]   # or several: every target runs on every layout
     queries: all                   # or [q01, q06]
     match: "avg\\s*\\("             # optional: only queries whose SQL matches this regex
     warmup: 1                      # unmeasured executions per query
@@ -75,7 +76,7 @@ class RunConfig:
     name: str
     benchmark: str
     scale_factor: str
-    layout: str
+    layout: str            # first layout (kept for callers that need one)
     queries: list[str]
     warmup: int
     repetitions: int
@@ -86,6 +87,7 @@ class RunConfig:
     cluster: dict
     targets: list[TargetSpec]
     variants: list[Variant]
+    layouts: list[str] = field(default_factory=list)
     raw: dict = field(default_factory=dict)
 
     def configurations(self) -> list[tuple[TargetSpec, Variant]]:
@@ -141,7 +143,11 @@ def from_dict(d: dict) -> RunConfig:
         raise ValueError("target names must be unique")
     variants = [Variant(str(v["name"]), Overrides.from_dict(v), v.get("description", ""))
                 for v in (d.get("variants") or [{"name": "default"}])]
-    layout = bench.layout(d.get("layout")).name
+    names = d.get("layouts") or [d.get("layout")]
+    if isinstance(names, str):
+        names = [x.strip() for x in names.split(",") if x.strip()]
+    layouts = list(dict.fromkeys(bench.layout(n).name for n in names))
+    layout = layouts[0]
     return RunConfig(
         name=d.get("name") or " vs ".join(t.name for t in targets),
         benchmark=bench.name, scale_factor=sf, layout=layout,
@@ -149,7 +155,7 @@ def from_dict(d: dict) -> RunConfig:
         rounds=int(d.get("rounds", 1)), timeout=str(d.get("timeout", "10m")),
         resources=d.get("resources") or {"memory": "10g"}, capture_plans=bool(d.get("capture_plans", True)),
         cluster=d.get("cluster") or {"type": "docker", "workers": 0},
-        targets=targets, variants=variants, raw=d,
+        targets=targets, variants=variants, layouts=layouts, raw=d,
     )
 
 

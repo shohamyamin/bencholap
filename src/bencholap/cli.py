@@ -196,7 +196,7 @@ def _execute(cfg_dict: dict, output: Path, build_dataset: bool) -> None:
 
     cfg = runconfig.from_dict(cfg_dict)
     if build_dataset:
-        dataset.build(cfg.benchmark, cfg.scale_factor, cfg.layout)
+        dataset.build_many(cfg.benchmark, cfg.scale_factor, cfg.layouts)
     _finish(runner.run_benchmark(cfg, output))
 
 
@@ -380,7 +380,7 @@ def _finish_request(req, out: Path) -> None:
 
         runner = profiles.cluster(req.profile)["runner"]
     _gh_output(status=status, runner=runner or "", request=req.to_json(),
-               dataset_key=f"dataset-{req.benchmark}-sf{req.scale_factor}")
+               dataset_key=f"dataset-{req.benchmark}-sf{req.scale_factor}-{'+'.join(sorted(req.layouts))}")
     click.echo(comment)
     if req.errors:
         sys.exit(2)
@@ -398,6 +398,7 @@ def request_from_inputs(out: Path) -> None:
         targets=[t for t in targets if t.strip()], benchmark=e.get("REQ_BENCHMARK", "tpch"),
         scale_factor=e.get("REQ_SCALE_FACTOR", "1"), profile=e.get("REQ_PROFILE", "gh-standard"),
         preset=e.get("REQ_PRESET", "standard"), queries=e.get("REQ_QUERIES") or "all",
+        layouts=e.get("REQ_LAYOUTS", ""),
         match=e.get("REQ_MATCH") or None,
         variants=None if e.get("REQ_VARIANTS", "none") in ("", "none") else e["REQ_VARIANTS"],
         publish=e.get("REQ_PUBLISH", "true") == "true", title=e.get("REQ_TITLE") or None,
@@ -426,9 +427,10 @@ def request_from_json(out: Path) -> None:
 @click.option("--sf", default="1")
 @click.option("--profile", default="gh-standard")
 @click.option("--preset", default="standard")
+@click.option("--layouts", default="", help="Comma-separated layouts (default: the benchmark's default).")
 @click.option("--kind", default="sweep")
 @click.option("--out", type=click.Path(path_type=Path), default=Path("request"), show_default=True)
-def request_sweep(every, from_, to, benchmark, sf, profile, preset, kind, out) -> None:
+def request_sweep(every, from_, to, benchmark, sf, profile, preset, layouts, kind, out) -> None:
     """Request for a release sweep (newest, newest-N, ...), oldest version as baseline.
     With --every 1 --kind release it compares the newest release with the previous one."""
     from . import request as rq
@@ -439,7 +441,7 @@ def request_sweep(every, from_, to, benchmark, sf, profile, preset, kind, out) -
     title = (f"Trino {versions[-1]} vs {versions[0]} (new release)" if kind == "release"
              else f"Trino releases every {every}: {versions[0]}..{versions[-1]}")
     req = rq.validate(rq.Request(targets=[str(v) for v in versions], benchmark=benchmark, scale_factor=sf,
-                                 profile=profile, preset=preset, kind=kind, title=title,
+                                 profile=profile, preset=preset, kind=kind, title=title, layouts=layouts,
                                  requested_by=os.environ.get("GITHUB_ACTOR")))
     _finish_request(req, out)
 
