@@ -288,9 +288,13 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     # Build with the JDK of the base release image so the result runs on it. mvnd (the Maven
     # daemon, parallel by default) is used when it can be installed; plain ./mvnw otherwise.
     mvnd = _mvnd()
+    # trino-server pulls trino-server-core and the plugins in through provisio, not as Maven
+    # dependencies, so `-pl :trino-server -am` builds almost nothing. Build the whole reactor
+    # (minus docs) like Trino's own CI does.
     goals = ("-B -Dmaven.repo.local=/m2 -DskipTests -Dair.check.skip-all=true -Dmaven.javadoc.skip=true "
-             "-Dmaven.source.skip=true -pl :trino-server -am package")
-    build = (f"/mvnd/bin/mvnd -Dmvnd.noBuffering=true {goals}" if mvnd else f"./mvnw -T 1C {goals}")
+             "-Dmaven.source.skip=true -pl '!:trino-docs' install")
+    build = (f"/mvnd/bin/mvnd -Dmvnd.noBuffering=true -Dmvnd.maxHeapSize=4g {goals}" if mvnd
+             else f"./mvnw -T 1C {goals}")
     mounts = ["-v", f"{mvnd}:/mvnd:ro"] if mvnd else []
     log.info("building with %s", "mvnd" if mvnd else "./mvnw")
     run(["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
