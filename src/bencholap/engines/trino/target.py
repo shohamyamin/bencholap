@@ -74,10 +74,16 @@ def image_digest(image: str) -> str | None:
 
 
 def image_trino_version(image: str) -> str | None:
-    """Read the version from the trino-main jar name inside the image."""
-    out = run(["docker", "run", "--rm", "--entrypoint", "sh", image, "-c",
-               "ls /usr/lib/trino/lib | grep -E '^trino-main-.*\\.jar$'"], capture=True, check=False)
-    m = re.search(r"trino-main-(.+)\.jar", out.stdout or "")
+    """The version recorded by _overlay as an image label, else read from the server jar name inside the
+    image: [io.trino_]trino-main-<v>.jar or trino-server-main-<v>.jar. Images have no grep, so the
+    listing is filtered here."""
+    out = run(["docker", "image", "inspect", "-f", '{{index .Config.Labels "io.bencholap.trino.version"}}', image],
+              capture=True, check=False)
+    label = (out.stdout or "").strip()
+    if out.returncode == 0 and label and label != "<no value>":
+        return label
+    out = run(["docker", "run", "--rm", "--entrypoint", "ls", image, "/usr/lib/trino/lib"], capture=True, check=False)
+    m = re.search(r"^(?:io\.trino_)?trino-(?:server-)?main-(.+)\.jar$", out.stdout or "", re.MULTILINE)
     return m.group(1) if m else None
 
 
@@ -184,6 +190,7 @@ def _overlay(server_dir: Path, version: str, tag: str, base_image: str | None) -
     ctx = server_dir.parent
     (ctx / "Dockerfile").write_text(
         f"FROM {base}\n"
+        f'LABEL io.bencholap.trino.version="{version}"\n'
         "USER root\n"
         "RUN rm -rf /usr/lib/trino/lib /usr/lib/trino/plugin\n"
         f"COPY {server_dir.name}/lib /usr/lib/trino/lib\n"

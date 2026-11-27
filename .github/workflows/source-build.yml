@@ -58,6 +58,7 @@ jobs:
           target="$PINNED"
           if [ -n "$INPUT_TARGET" ]; then target="$INPUT_TARGET"; elif [ "$EVENT" = schedule ]; then target=github:trinodb/trino@master; fi
           echo "building $target"
+          echo "TARGET=$target" >> "$GITHUB_ENV"
           uv run bencholap targets resolve "$target" | tee resolve.log
           # Maven output shares stdout; the resolved target is the trailing JSON object.
           n=$(tac resolve.log | grep -n -m1 '^{$' | cut -d: -f1)
@@ -73,3 +74,12 @@ jobs:
           done
           docker exec trino trino --execute "SELECT count(*) FROM tpch.tiny.nation" | tee out.txt
           grep -qx '"25"' out.txt || { docker logs trino | tail -50; exit 1; }
+
+      - name: Cached image resolves to the same version
+        # Benchmark runs resolve each target again after preparing it; the version picks the
+        # version-specific Trino config, so it must not degrade to "unknown".
+        run: |
+          built=$(jq -r .version target.json)
+          again=$(uv run bencholap targets resolve "$TARGET" | jq -r .version)
+          echo "built: $built, resolved again: $again"
+          [ "$built" = "$again" ] && [ "$again" != unknown ]
