@@ -14,6 +14,7 @@ Go to **Issues → New issue → Benchmark request** and fill in the form:
 | Scale factor | `1` |
 | Cluster profile | `gh-standard` |
 | Repetitions | `standard` |
+| Queries | `all` (or `quick` for a small subset) |
 | Query filter | `avg\s*\(` (27 TPC-DS queries) |
 
 **Table layouts** (pick one or more; every target runs on each): `unpartitioned` is the
@@ -29,6 +30,11 @@ a Trino version deals with organized data, add bencholap layouts:
 | ClickBench | `sorted` | ClickBench's primary key order: row-group pruning for CounterID / EventDate filters |
 | ClickBench | `date-partitioned` | daily partitions: Q36-Q42 date ranges |
 | ClickBench | `bloom-filters` | UserID / URLHash / RefererHash point lookups (Q19, Q40, Q41) |
+
+**For fast feedback** set Queries to `quick` (a small subset per benchmark with one query per main
+execution pattern, listed in [benchmarks.md](benchmarks.md)) and Repetitions to `quick`
+(1 warmup, 3 measured runs). That is enough for a first impression of a feature; rerun with
+Queries `all` and Repetitions `standard` or `thorough` before drawing conclusions.
 
 In the report, pick the metrics "Data files scanned", "Manifests skipped", "Bytes read from
 storage" or "Input rows" to see the pruning, not only the time.
