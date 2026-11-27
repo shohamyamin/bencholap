@@ -290,7 +290,7 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     mvnd = _mvnd()
     goals = ("-B -Dmaven.repo.local=/m2 -DskipTests -Dair.check.skip-all=true -Dmaven.javadoc.skip=true "
              "-Dmaven.source.skip=true -pl :trino-server -am package")
-    build = (f"/mvnd/bin/mvnd --no-daemon-status {goals}" if mvnd else f"./mvnw -T 1C {goals}")
+    build = (f"/mvnd/bin/mvnd -Dmvnd.noBuffering=true {goals}" if mvnd else f"./mvnw -T 1C {goals}")
     mounts = ["-v", f"{mvnd}:/mvnd:ro"] if mvnd else []
     log.info("building with %s", "mvnd" if mvnd else "./mvnw")
     run(["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
