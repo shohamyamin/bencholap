@@ -66,7 +66,7 @@ def dataset_cmd() -> None:
 @click.option("--sf", default="1", show_default=True, help="Scale factor.")
 @click.option("--layout", "-l", default=None, help="Validated layout (default: the benchmark's default).")
 @click.option("--loader", default=dataset.DEFAULT_LOADER, show_default=True, help="Trino target that writes the tables.")
-@click.option("--loader-memory", default="8g", show_default=True)
+@click.option("--loader-memory", default="10g", show_default=True)
 @click.option("--force", is_flag=True, help="Rebuild even if the dataset exists.")
 @click.option("--keep-raw", is_flag=True, help="Keep the generated Parquet files.")
 def dataset_build(benchmark, sf, layout, loader, loader_memory, force, keep_raw) -> None:
@@ -380,7 +380,8 @@ def _finish_request(req, out: Path) -> None:
 
         runner = profiles.cluster(req.profile)["runner"]
     _gh_output(status=status, runner=runner or "", request=req.to_json(),
-               dataset_key=f"dataset-{req.benchmark}-sf{req.scale_factor}-{'+'.join(sorted(req.layouts))}")
+               dataset_key=f"dataset-{req.benchmark}-sf{req.scale_factor}-{'+'.join(sorted(req.layouts))}",
+               dataset_prefix=f"dataset-{req.benchmark}-sf{req.scale_factor}-")
     click.echo(comment)
     if req.errors:
         sys.exit(2)

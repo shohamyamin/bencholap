@@ -25,6 +25,7 @@ from .engines import get as get_engine
 from .util import home, log, read_json, run, write_json
 
 DEFAULT_LOADER = "484"
+LOADER_CONFIG = {"query.max-memory-per-node": "5GB", "query.max-memory": "5GB"}
 
 
 @dataclass(frozen=True)
@@ -142,8 +143,11 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
     ds = DatasetId(bench.name, sf, lay.name)
     existing = get_manifest(ds)
     if existing and not force:
-        log.info("dataset %s already built", ds.key)
-        return existing
+        if existing.get("layout") == lay.as_dict() and existing.get("generator") == bench.generator:
+            log.info("dataset %s already built", ds.key)
+            return existing
+        log.info("dataset %s was built with a different layout or generator definition; rebuilding", ds.key)
+        force = True
 
     stack.ensure_up()
     local = generate(bench, sf, home() / "data" / bench.name / f"sf{sf}")
@@ -167,8 +171,9 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
 
     engine = get_engine("trino")
     target = engine.resolve(loader)
-    running = engine.start(target, {}, resources or {"memory": "8g"}, catalogs=("iceberg", "staging"),
-                           label="loader")
+    # Partitioned and sorted writes keep many writers open; give the loader query enough memory.
+    running = engine.start(target, {"config": LOADER_CONFIG}, resources or {"memory": "10g"},
+                           catalogs=("iceberg", "staging"), label="loader")
     started = time.time()
     try:
         sess = running.session("default", {})

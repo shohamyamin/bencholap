@@ -58,7 +58,7 @@
     <div class="small muted">data from {{ ds.generator.tool }} {{ ds.generator.version }}, written by Trino {{ ds.loader.version }} on {{ ds.built_at }}</div>
     <table class="t" style="margin-top:10px"><thead><tr><th>table</th><th class="num">rows</th><th class="num">data files</th><th class="num">size</th><th>layout</th></tr></thead><tbody>
     {% for t, d in ds.tables.items() %}{% set tl = ds.layout.tables.get(t) %}<tr><td>{{ t }}</td><td class="num">{{ '{:,}'.format(d.rows) }}</td><td class="num">{{ d.data_files }}</td><td class="num">{{ d.data_bytes|bytes }}</td>
-      <td class="small">{% if tl %}{% for k, v in tl.items() %}{{ k }}: {{ v|join(", ") }} {% endfor %}{% else %}–{% endif %}</td></tr>{% endfor %}
+      <td class="small">{% if tl %}{% for k, v in tl.items() %}{{ k }}: {{ v|join(", ") if v is iterable and v is not string else v }} {% endfor %}{% else %}–{% endif %}</td></tr>{% endfor %}
     </tbody></table>
   </div>
   {% endfor %}

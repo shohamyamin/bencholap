@@ -207,6 +207,37 @@ def _extract_server(tarball: Path, dest: Path) -> tuple[Path, str]:
     return roots[0], roots[0].name[len("trino-server-"):]
 
 
+MVND_VERSION = os.environ.get("BENCHOLAP_MVND_VERSION", "1.0.6")
+
+
+def _mvnd() -> Path | None:
+    """Download (once) the mvnd distribution for this architecture; None if unavailable."""
+    arch = {"x86_64": "amd64", "aarch64": "aarch64", "arm64": "aarch64"}.get(os.uname().machine)
+    if not arch or os.environ.get("BENCHOLAP_NO_MVND"):
+        return None
+    name = f"maven-mvnd-{MVND_VERSION}-linux-{arch}"
+    root = _cache() / "mvnd"
+    home_dir = root / name
+    if (home_dir / "bin" / "mvnd").exists():
+        return home_dir
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        archive = root / f"{name}.tar.gz"
+        for mirror in ("https://downloads.apache.org", "https://archive.apache.org/dist"):
+            try:
+                urllib.request.urlretrieve(f"{mirror}/maven/mvnd/{MVND_VERSION}/{name}.tar.gz", archive)
+                break
+            except OSError:
+                continue
+        with tarfile.open(archive) as tar:
+            tar.extractall(root, filter="data")
+        archive.unlink()
+        return home_dir if (home_dir / "bin" / "mvnd").exists() else None
+    except Exception as e:  # noqa: BLE001 - fall back to ./mvnw
+        log.warning("mvnd not available (%s); using ./mvnw", e)
+        return None
+
+
 def _from_tarball(location: str, spec: str, base_image: str | None = None) -> ResolvedTarget:
     work = _cache() / "tarball" / re.sub(r"[^A-Za-z0-9._-]", "_", location)[-80:]
     work.mkdir(parents=True, exist_ok=True)
@@ -254,12 +285,18 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     m2.mkdir(exist_ok=True)
     log.info("building Trino %s from %s@%s (%s) inside %s; this takes a while", version, url, ref,
              commit[:12], base)
-    # Build with the JDK of the base release image so the result runs on it.
+    # Build with the JDK of the base release image so the result runs on it. mvnd (the Maven
+    # daemon, parallel by default) is used when it can be installed; plain ./mvnw otherwise.
+    mvnd = _mvnd()
+    goals = ("-B -Dmaven.repo.local=/m2 -DskipTests -Dair.check.skip-all=true -Dmaven.javadoc.skip=true "
+             "-Dmaven.source.skip=true -pl :trino-server -am package")
+    build = (f"/mvnd/bin/mvnd --no-daemon-status {goals}" if mvnd else f"./mvnw -T 1C {goals}")
+    mounts = ["-v", f"{mvnd}:/mvnd:ro"] if mvnd else []
+    log.info("building with %s", "mvnd" if mvnd else "./mvnw")
     run(["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
-         "-e", "MAVEN_OPTS=-Xmx3g", "-e", "HOME=/tmp",
-         "-v", f"{src}:/src", "-v", f"{m2}:/m2", "-w", "/src", "--entrypoint", "bash", base, "-c",
-         ("./mvnw -B -q -Dmaven.repo.local=/m2 -DskipTests -Dair.check.skip-all=true "
-         "-Dmaven.javadoc.skip=true -Dmaven.source.skip=true -pl :trino-server -am package")])
+         "-e", "MAVEN_OPTS=-Xmx3g", "-e", "HOME=/tmp", "-e", "MVND_DAEMON_STORAGE=/tmp/mvnd",
+         "-v", f"{src}:/src", "-v", f"{m2}:/m2", *mounts, "-w", "/src", "--entrypoint", "bash", base,
+         "-c", build])
     tarballs = list((src / "core" / "trino-server" / "target").glob("trino-server-*.tar.gz"))
     if not tarballs:
         raise RuntimeError("source build finished but no trino-server tarball was produced")

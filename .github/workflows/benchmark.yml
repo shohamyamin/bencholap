@@ -78,6 +78,7 @@ jobs:
       runner: ${{ steps.req.outputs.runner }}
       request: ${{ steps.req.outputs.request }}
       dataset_key: ${{ steps.req.outputs.dataset_key }}
+      dataset_prefix: ${{ steps.req.outputs.dataset_prefix }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -138,19 +139,25 @@ jobs:
           gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "Benchmark started: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
       # Datasets are written once per benchmark and scale factor and shared by all jobs
       # through the cache, so every run reads the same Iceberg snapshot.
+      # Exact key: same benchmark, scale factor, layouts and definitions. Otherwise the newest
+      # dataset of the same benchmark and scale factor is restored and only missing or
+      # changed layouts are rebuilt (dataset manifests record the layout they were built with).
       - name: Restore dataset
         id: cache
         uses: actions/cache/restore@v4
         with:
           path: dataset-state.tar
           key: ${{ needs.plan.outputs.dataset_key }}-${{ hashFiles('src/bencholap/benchmarks/**/benchmark.yaml', 'src/bencholap/dataset.py', 'src/bencholap/stack.py') }}
+          restore-keys: ${{ needs.plan.outputs.dataset_prefix }}
       - name: Import dataset
-        if: steps.cache.outputs.cache-hit == 'true'
+        if: steps.cache.outputs.cache-matched-key != ''
         run: uv run bencholap stack import dataset-state.tar
-      - name: Cache Maven repository (source builds)
+      - name: Cache Maven repository and mvnd (source builds)
         uses: actions/cache@v4
         with:
-          path: .bencholap/cache/trino/m2
+          path: |
+            .bencholap/cache/trino/m2
+            .bencholap/cache/trino/mvnd
           key: m2-${{ github.run_id }}
           restore-keys: m2-
       - name: Run
