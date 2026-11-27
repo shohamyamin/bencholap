@@ -27,12 +27,13 @@ layouts:
   unpartitioned:
     description: >
       Unpartitioned, unsorted tables loaded with CREATE TABLE AS SELECT from the generated
-      data, as in Trino's own benchmark setup.
+      data, as in Trino's own benchmark setup (no ANALYZE after loading; Trino collects Iceberg
+      statistics while writing).
     validated: true
     sources:
       - name: Trino benchto TPC-H schema generation (generate-tpch.py)
         url: https://github.com/trinodb/trino/blob/master/testing/trino-benchto-benchmarks/generate_schemas/generate-tpch.py
-    analyze: true
+    analyze: false
     tables: {}
 
 
@@ -44,7 +45,7 @@ layouts:
     validated: false
     basis: bencholap layout for min/max (row-group) pruning tests, not a published TPC-H setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       lineitem: {sorted_by: [l_shipdate], row_group_rows: 100000}
       orders: {sorted_by: [o_orderdate], row_group_rows: 100000}
@@ -56,7 +57,7 @@ layouts:
     validated: false
     basis: bencholap layout for partition-pruning tests, not a published TPC-H setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       lineitem: {partitioning: ["month(l_shipdate)"]}
       orders: {partitioning: ["month(o_orderdate)"]}
@@ -69,7 +70,7 @@ layouts:
     validated: false
     basis: bencholap layout for bloom-filter tests, not a published TPC-H setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       lineitem: {bloom_filter_columns: [l_orderkey, l_partkey], row_group_rows: 100000}
       orders: {bloom_filter_columns: [o_orderkey], row_group_rows: 100000}

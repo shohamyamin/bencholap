@@ -62,7 +62,7 @@ Results go to `results/<run_id>/{result.json,report.html,summary.md}`; open `rep
  prepare (in parallel, before any measurement)
    ├─ targets: pull the release image, or build the fork / PR once (mvnd) and cache it
    └─ datasets: generate or download raw Parquet → write Iceberg tables once per layout
-      with a pinned Trino → ANALYZE → manifest (cached between runs)
+      with a pinned Trino → ANALYZE only where the layout's source does it → manifest (cached)
  measure (one isolated Trino cluster per target × variant × layout, restarted every time)
    ├─ per query: warmup runs, measured runs, rounds alternate targets (A B A B)
    ├─ engine metrics from Trino's query info, the distributed plan, the result

@@ -34,12 +34,12 @@ layouts:
   unpartitioned:
     description: >
       One unpartitioned Iceberg table written with a single INSERT and default settings, as in
-      ClickBench's presto-iceberg setup.
+      ClickBench's presto-iceberg setup (no ANALYZE after loading).
     validated: true
     sources:
       - name: ClickBench presto-iceberg (create.sql, insert.sql, load)
         url: https://github.com/ClickHouse/ClickBench/tree/main/presto-iceberg
-    analyze: true
+    analyze: false
     tables: {}
 
   small-row-groups:
@@ -50,7 +50,7 @@ layouts:
     validated: false
     basis: bencholap control layout for pruning tests, not a published ClickBench setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       hits: {row_group_rows: 100000}
 
@@ -67,7 +67,7 @@ layouts:
     sources:
       - name: ClickBench ClickHouse table definition (PRIMARY KEY)
         url: https://github.com/ClickHouse/ClickBench/blob/main/clickhouse/create.sql
-    analyze: true
+    analyze: false
     tables:
       hits: {sorted_by: [counterid, eventdate, userid, eventtime, watchid], row_group_rows: 100000}
 
@@ -78,7 +78,7 @@ layouts:
     validated: false
     basis: bencholap layout for partition-pruning tests, not a published ClickBench setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       hits: {partitioning: [eventdate]}
 
@@ -91,6 +91,6 @@ layouts:
     validated: false
     basis: bencholap layout for bloom-filter tests, not a published ClickBench setup.
     sources: []
-    analyze: true
+    analyze: false
     tables:
       hits: {bloom_filter_columns: [userid, urlhash, refererhash], row_group_rows: 100000}

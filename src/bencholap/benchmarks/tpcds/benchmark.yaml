@@ -51,12 +51,13 @@ layouts:
   unpartitioned:
     description: >
       Unpartitioned, unsorted tables loaded with CREATE TABLE AS SELECT from the generated
-      data, as in Trino's own benchmark setup.
+      data, as in Trino's own benchmark setup (no ANALYZE after loading; Trino collects Iceberg
+      statistics while writing).
     validated: true
     sources:
       - name: Trino benchto TPC-DS schema generation (generate-tpcds.py)
         url: https://github.com/trinodb/trino/blob/master/testing/trino-benchto-benchmarks/generate_schemas/generate-tpcds.py
-    analyze: true
+    analyze: false
     tables: {}
 
   date-partitioned:
