@@ -13,7 +13,8 @@ Accepted forms (published images are preferred; nothing is built unless needed):
   pr-base:<n>                          merge base of that pull request (the fair baseline)
 
 A git target whose repository is trinodb/trino and whose ref is a release tag resolves to
-the published image. Anything else is built from source once and cached by commit.
+the published image. Anything else is built from source once and cached by commit (locally,
+and in the image registry BENCHOLAP_IMAGE_CACHE when set, so other runs pull it).
 """
 
 from __future__ import annotations
@@ -21,7 +22,10 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import subprocess
 import tarfile
+import threading
+import time
 import urllib.request
 from pathlib import Path
 
@@ -188,9 +192,14 @@ def _overlay(server_dir: Path, version: str, tag: str, base_image: str | None) -
     base = base_image or os.environ.get("BENCHOLAP_TRINO_BASE_IMAGE") or _base_image_for(version)
     ensure_image(base)
     ctx = server_dir.parent
+    # the source label links an image pushed to GHCR to this repository, so its workflows can read it
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    source = (f'LABEL org.opencontainers.image.source="{os.environ.get("GITHUB_SERVER_URL", "https://github.com")}'
+              f'/{repo}"\n') if repo and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) else ""
     (ctx / "Dockerfile").write_text(
         f"FROM {base}\n"
-        f'LABEL io.bencholap.trino.version="{version}"\n'
+        f'LABEL io.bencholap.trino.version="{version}" io.bencholap.trino.base-image="{base}"\n'
+        f"{source}"
         "USER root\n"
         "RUN rm -rf /usr/lib/trino/lib /usr/lib/trino/plugin\n"
         f"COPY {server_dir.name}/lib /usr/lib/trino/lib\n"
@@ -288,6 +297,81 @@ def _server_modules(src: Path) -> list[str]:
     return sorted(seen)
 
 
+# ---------------------------------------------------------------------------------------
+# Registry cache for source builds: an image built from a commit is pushed to
+# BENCHOLAP_IMAGE_CACHE (an image repository, e.g. ghcr.io/me/bencholap-trino) as
+# <repo>:git-<full commit>, and later runs pull it instead of building again. Unset: no
+# registry cache. A failed pull means "build it"; a failed push only loses the sharing.
+# Neither ever fails a run.
+
+_logged_in: set[str] = set()
+_login_lock = threading.Lock()
+
+
+def _cache_ref(commit: str) -> str | None:
+    repo = os.environ.get("BENCHOLAP_IMAGE_CACHE", "").strip().lower()
+    return f"{repo}:git-{commit}" if repo and len(commit) == 40 else None
+
+
+def _registry_login(ref: str) -> None:
+    """Log in to GHCR with the workflow token (GITHUB_TOKEN); other registries use existing credentials."""
+    registry = ref.split("/")[0]
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    with _login_lock:
+        if registry != "ghcr.io" or not token or registry in _logged_in:
+            return
+        out = subprocess.run(["docker", "login", registry, "-u", os.environ.get("GITHUB_ACTOR") or "bencholap",
+                              "--password-stdin"], input=token, text=True, capture_output=True, timeout=120,
+                             check=False)
+        if out.returncode != 0:
+            log.warning("docker login %s failed: %s", registry, (out.stderr or "").strip()[:300])
+        _logged_in.add(registry)
+
+
+def _pull_cached(commit: str, tag: str) -> bool:
+    ref = _cache_ref(commit)
+    if not ref:
+        return False
+    try:
+        _registry_login(ref)
+        t0 = time.monotonic()
+        out = run(["docker", "pull", "-q", ref], capture=True, check=False, timeout=1200)
+        if out.returncode != 0:
+            log.info("no cached image %s (%s); building", ref,
+                     ((out.stderr or "").strip().splitlines() or [""])[-1][:200])
+            return False
+        run(["docker", "tag", ref, tag], capture=True)
+        log.info("pulled cached build %s in %.0f s", ref, time.monotonic() - t0)
+        return True
+    except Exception as e:  # noqa: BLE001 - the cache is optional
+        log.warning("pulling cached image %s failed (%s); building", ref, e)
+        return False
+
+
+def _push_cached(commit: str, tag: str) -> None:
+    ref = _cache_ref(commit)
+    if not ref:
+        return
+    try:
+        _registry_login(ref)
+        t0 = time.monotonic()
+        run(["docker", "tag", tag, ref], capture=True)
+        out = run(["docker", "push", "-q", ref], capture=True, check=False, timeout=1800)
+        if out.returncode == 0:
+            log.info("pushed %s to the image cache in %.0f s", ref, time.monotonic() - t0)
+        else:
+            log.warning("pushing %s failed: %s", ref, (out.stderr or "").strip()[:300])
+    except Exception as e:  # noqa: BLE001 - the cache is optional
+        log.warning("pushing %s failed: %s", ref, e)
+
+
+def _image_label(image: str, label: str) -> str | None:
+    out = run(["docker", "image", "inspect", "-f", f'{{{{index .Config.Labels "{label}"}}}}', image],
+              capture=True, check=False)
+    value = (out.stdout or "").strip()
+    return value if out.returncode == 0 and value and value != "<no value>" else None
+
+
 def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     out = run(["git", "ls-remote", url, ref, f"refs/heads/{ref}", f"refs/tags/{ref}"], capture=True)
     lines = [ln.split() for ln in out.stdout.splitlines() if ln.strip()]
@@ -299,8 +383,11 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
         raise ValueError(f"ref {ref!r} not found in {url}")
     tag = f"bencholap/trino:git-{commit[:12]}"
     source = {"kind": "git", "repo": url, "ref": ref, "commit": commit, "image": tag}
-    if _image_exists_locally(tag):
+    if _image_exists_locally(tag) or _pull_cached(commit, tag):
         version = image_trino_version(tag)
+        base = _image_label(tag, "io.bencholap.trino.base-image")
+        if base:
+            source["base_image"] = base
         return ResolvedTarget("trino", spec, tag, version or "unknown", version_number(version), source)
 
     src = _cache() / "src" / commit[:12]
@@ -339,4 +426,5 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
         raise RuntimeError("source build finished but no trino-server tarball was produced")
     server_dir, version = _extract_server(tarballs[0], _cache() / "overlay" / commit[:12])
     source["base_image"] = _overlay(server_dir, version, tag, base)
+    _push_cached(commit, tag)
     return ResolvedTarget("trino", spec, tag, version, version_number(version), source)

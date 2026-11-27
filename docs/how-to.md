@@ -60,8 +60,10 @@ the results site, for example `https://<owner>.github.io/bencholap/runs/<run_id>
 and closes the issue. A failed run leaves the issue open (label `benchmark: failed`); fix the
 request and re-approve it.
 
-Building a branch or PR from source takes a long time on a free runner. If you publish an
-image of your branch and use `image:...`, nothing is built.
+Building a branch or PR from source takes a long time on a free runner. Each commit is built
+only once: the image is cached in the repository's container registry and every later run of
+the same commit pulls it. If you publish an image of your branch and use `image:...`, nothing
+is built.
 
 Maintainers can also start runs directly: **Actions → benchmark → Run workflow** (same fields).
 

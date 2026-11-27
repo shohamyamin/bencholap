@@ -35,6 +35,7 @@ permissions:
   issues: write
   pages: write
   id-token: write
+  packages: write   # image cache of source builds (GHCR)
 
 jobs:
   plan:

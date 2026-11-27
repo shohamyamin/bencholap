@@ -116,6 +116,9 @@ Per query and configuration, over the measured runs:
   before the first measurement, so it cannot disturb timings.
 - **Source builds use mvnd** (the Maven daemon, parallel builds) and a cached Maven repository;
   published images (`image:...`) avoid building at all.
+- **Every commit is built once**: GitHub runs push each source-built image to
+  `ghcr.io/<owner>/bencholap-trino:git-<commit>` and later runs pull it instead of building
+  (`BENCHOLAP_IMAGE_CACHE` locally; a failed pull just builds, a failed push never fails a run).
 - Measurement itself stays isolated: one fresh cluster per configuration, the same warmup and
   repetitions for every target, and alternating rounds.
 

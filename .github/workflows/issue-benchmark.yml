@@ -17,6 +17,7 @@ permissions:
   issues: write
   pages: write
   id-token: write
+  packages: write   # image cache of source builds (GHCR)
 
 concurrency:
   group: issue-${{ github.event.issue.number }}
@@ -103,3 +104,4 @@ jobs:
       issues: write
       pages: write
       id-token: write
+      packages: write

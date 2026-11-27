@@ -69,6 +69,7 @@ permissions:
   issues: write
   pages: write
   id-token: write
+  packages: write   # image cache of source builds (GHCR)
 
 jobs:
   plan:
@@ -120,6 +121,8 @@ jobs:
       BENCHOLAP_HOME: ${{ github.workspace }}/.bencholap
       BENCHOLAP_MACHINE_LABEL: ${{ needs.plan.outputs.runner }}
       GITHUB_TOKEN: ${{ github.token }}
+      # Source builds are pushed here by commit and pulled by later runs (src/bencholap/engines/trino/target.py)
+      BENCHOLAP_IMAGE_CACHE: ghcr.io/${{ github.repository_owner }}/bencholap-trino
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
