@@ -1,0 +1,15 @@
+title: Trino execution settings that may be mis-tuned for small single nodes
+description: >
+  Default settings against settings that change how many drivers hash stages use, when partial
+  aggregation turns itself off, and whether group ids are computed once per dictionary entry.
+variants:
+  - name: default
+  - name: task-concurrency-4
+    description: four drivers for hash-partitioned stages instead of the physical-core default
+    session: {task_concurrency: 4}
+  - name: partial-agg-ratio-0.5
+    description: disable partial aggregation once over half of the input rows are unique (default 0.8)
+    session: {adaptive_partial_aggregation_unique_rows_ratio_threshold: 0.5}
+  - name: dictionary-aggregation
+    description: compute group ids once per dictionary entry
+    session: {dictionary_aggregation: true}

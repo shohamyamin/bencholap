@@ -51,7 +51,7 @@ on:
       variants:
         description: Settings variants (see src/bencholap/profiles/variants)
         type: choice
-        options: [none, dynamic-filtering]
+        options: [none, dynamic-filtering, trino-perf-config]
         default: none
       publish:
         description: Publish to the public results site
