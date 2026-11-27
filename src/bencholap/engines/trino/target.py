@@ -255,6 +255,32 @@ def _from_tarball(location: str, spec: str, base_image: str | None = None) -> Re
                           {"kind": "tarball", "location": location, "base_image": base, "image": tag})
 
 
+def _server_modules(src: Path) -> list[str]:
+    """Every in-repo module the trino-server tarball is assembled from. trino-server declares no Maven
+    dependencies: its contents (trino-server-core, every plugin) are listed only in provisio descriptors,
+    so `-pl :trino-server -am` alone would leave them out of the reactor and Maven would look for the
+    SNAPSHOT artifacts in remote repositories. Follows descriptors transitively (trino-server-core has its
+    own)."""
+    modules: dict[str, Path] = {}
+    for pom in src.rglob("pom.xml"):
+        if "target" in pom.parts or "src" in pom.relative_to(src).parts:
+            continue
+        text = re.sub(r"<parent>.*?</parent>", "", pom.read_text(), count=1, flags=re.DOTALL)
+        m = re.search(r"<artifactId>([^<]+)</artifactId>", text)
+        if m:
+            modules[m.group(1).strip()] = pom.parent
+    ref = re.compile(r"(?:\$\{project\.groupId\}|io\.trino):([A-Za-z0-9_.-]+)")
+    seen, queue = set(), ["trino-server"]
+    while queue:
+        name = queue.pop()
+        if name in seen or name not in modules:
+            continue
+        seen.add(name)
+        for xml in sorted((modules[name] / "src" / "main" / "provisio").glob("*.xml")):
+            queue.extend(ref.findall(xml.read_text()))
+    return sorted(seen)
+
+
 def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     out = run(["git", "ls-remote", url, ref, f"refs/heads/{ref}", f"refs/tags/{ref}"], capture=True)
     lines = [ln.split() for ln in out.stdout.splitlines() if ln.strip()]
@@ -288,8 +314,12 @@ def _from_source(url: str, ref: str, spec: str) -> ResolvedTarget:
     # Build with the JDK of the base release image so the result runs on it. mvnd (the Maven
     # daemon, parallel by default) is used when it can be installed; plain ./mvnw otherwise.
     mvnd = _mvnd()
+    modules = _server_modules(src)
+    if "trino-server" not in modules:
+        raise RuntimeError(f"no trino-server module found in {url}@{ref}")
+    log.info("building trino-server and the %d modules its tarball contains", len(modules) - 1)
     goals = ("-B -Dmaven.repo.local=/m2 -DskipTests -Dair.check.skip-all=true -Dmaven.javadoc.skip=true "
-             "-Dmaven.source.skip=true -pl :trino-server -am package")
+             f"-Dmaven.source.skip=true -pl {','.join(':' + m for m in modules)} -am package")
     build = (f"/mvnd/bin/mvnd -Dmvnd.noBuffering=true {goals}" if mvnd else f"./mvnw -T 1C {goals}")
     mounts = ["-v", f"{mvnd}:/mvnd:ro"] if mvnd else []
     log.info("building with %s", "mvnd" if mvnd else "./mvnw")

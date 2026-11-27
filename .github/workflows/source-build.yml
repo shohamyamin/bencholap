@@ -1,0 +1,75 @@
+name: source-build
+
+# Builds Trino from source with the exact code path benchmark requests use for fork / branch / PR
+# targets (bencholap targets resolve -> _from_source: mvnd, provisio module list, overlay image),
+# then starts the image and runs one query. Catches build-tooling breakage before a request hits it.
+
+on:
+  pull_request:
+    paths:
+      - src/bencholap/engines/trino/**
+      - src/bencholap/util.py
+      - .github/workflows/source-build.yml
+  push:
+    branches: [main]
+    paths:
+      - src/bencholap/engines/trino/**
+      - src/bencholap/util.py
+      - .github/workflows/source-build.yml
+  schedule:
+    - cron: "17 4 * * 1"   # weekly, against Trino master: catches upstream build changes
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target to build, e.g. github:trinodb/trino@master or github:you/trino@branch"
+        default: ""
+
+concurrency:
+  group: source-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      BENCHOLAP_HOME: ${{ github.workspace }}/.bencholap
+      # Pinned commit (the one that exposed the provisio module list bug); the weekly run uses master.
+      PINNED: github:trinodb/trino@d546d85675b9fe322e6d40bb9a1e70ee0549fa43
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - name: Cache Maven repository and mvnd (shared with benchmark runs)
+        uses: actions/cache@v4
+        with:
+          path: |
+            .bencholap/cache/trino/m2
+            .bencholap/cache/trino/mvnd
+          key: m2-${{ github.run_id }}
+          restore-keys: m2-
+      - name: Build
+        env:
+          INPUT_TARGET: ${{ inputs.target }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          target="$PINNED"
+          if [ -n "$INPUT_TARGET" ]; then target="$INPUT_TARGET"; elif [ "$EVENT" = schedule ]; then target=github:trinodb/trino@master; fi
+          echo "building $target"
+          uv run bencholap targets resolve "$target" | tee resolve.log
+          # Maven output shares stdout; the resolved target is the trailing JSON object.
+          n=$(tac resolve.log | grep -n -m1 '^{$' | cut -d: -f1)
+          tail -n "$n" resolve.log > target.json
+          jq . target.json
+      - name: Image starts and answers a query
+        run: |
+          image=$(jq -r .image target.json)
+          docker run -d --name trino -p 8080:8080 "$image"
+          for _ in $(seq 1 60); do
+            if curl -sf localhost:8080/v1/info | jq -e '.starting == false' >/dev/null; then break; fi
+            sleep 3
+          done
+          docker exec trino trino --execute "SELECT count(*) FROM tpch.tiny.nation" | tee out.txt
+          grep -qx '"25"' out.txt || { docker logs trino | tail -50; exit 1; }
