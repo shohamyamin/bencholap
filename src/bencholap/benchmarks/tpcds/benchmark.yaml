@@ -38,6 +38,14 @@ generator:
   tool: tpcgen-cli
   version: "4.0.0"
 
+subsets:
+  quick:
+    description: >
+      Ten mostly short queries covering star joins with aggregation (Q3, Q7, Q19, Q42, Q55), ROLLUP
+      (Q27) and ROLLUP with RANK windows (Q36), windows over CTEs (Q47), IN subqueries over a
+      self-joined CTE (Q95) and window ratios (Q98).
+    queries: [q03, q07, q19, q27, q36, q42, q47, q55, q95, q98]
+
 default_layout: unpartitioned
 layouts:
   unpartitioned:

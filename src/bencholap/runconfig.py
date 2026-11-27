@@ -106,10 +106,12 @@ def merged_overrides(t: TargetSpec, v: Variant) -> Overrides:
 
 
 def select_queries(bench: benchmarks.Benchmark, sf: str, queries, match: str | None) -> list[str]:
-    """`queries`: "all", "q01,q06" or a list; `match`: regex searched (case-insensitive) in the
+    """`queries`: "all", a named subset ("quick"), "q01,q06" or a list; `match`: regex searched (case-insensitive) in the
     canonical SQL, e.g. "avg\\s*\\(" for every query that computes an average."""
     if queries in (None, "all"):
         selected = list(bench.queries)
+    elif isinstance(queries, str) and queries.strip() in (bench.subsets or {}):
+        selected = list(bench.subsets[queries.strip()]["queries"])
     elif isinstance(queries, str):
         selected = [q.strip() for q in queries.split(",") if q.strip()]
     else:

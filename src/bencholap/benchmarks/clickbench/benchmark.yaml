@@ -20,6 +20,15 @@ generator:
 # the hits view that converts the Unix-second timestamps (load.sql).
 staging: {ddl: staging.sql, select: load.sql}
 
+subsets:
+  quick:
+    description: >
+      Ten queries: full count (Q0), sum/avg over columns (Q2), COUNT DISTINCT (Q5), group-by with
+      COUNT DISTINCT (Q9), group-by with COUNT DISTINCT on a filtered string column (Q13), point
+      lookup (Q19), ORDER BY ... LIMIT (Q23), REGEXP_REPLACE with group-by (Q28), high-cardinality
+      group-by on URL (Q33) and a CounterID + date-range filter (Q36).
+    queries: [q00, q02, q05, q09, q13, q19, q23, q28, q33, q36]
+
 default_layout: unpartitioned
 layouts:
   unpartitioned:

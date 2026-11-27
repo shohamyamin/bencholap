@@ -90,6 +90,7 @@ class Benchmark:
     supported_sf: tuple[str, ...] = ()
     answer_exceptions: dict | None = None
     staging: dict | None = None   # custom raw table DDL / load SELECT files
+    subsets: dict | None = None   # named query subsets, e.g. "quick"
 
     @property
     def dir(self) -> Path:
@@ -170,6 +171,7 @@ def load(name: str) -> Benchmark:
         supported_sf=tuple(format_sf(x) for x in d["scale_factors"]),
         answer_exceptions=answers.get("exceptions"),
         staging=d.get("staging"),
+        subsets=d.get("subsets") or {},
     )
 
 

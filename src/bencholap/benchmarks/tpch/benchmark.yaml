@@ -14,6 +14,14 @@ generator:
   tool: tpcgen-cli
   version: "4.0.0"
 
+subsets:
+  quick:
+    description: >
+      Seven queries, one per main execution pattern: large scan + aggregation (Q1), 3-way join with
+      top-N (Q3), selective filter scan (Q6), 6-way join with LIKE (Q9), left outer join with nested
+      aggregation (Q13), large group-by with IN subquery (Q18), EXISTS / NOT EXISTS semi/anti joins (Q21).
+    queries: [q01, q03, q06, q09, q13, q18, q21]
+
 default_layout: unpartitioned
 layouts:
   unpartitioned:

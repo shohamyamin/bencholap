@@ -195,8 +195,25 @@ def _execute(cfg_dict: dict, output: Path, build_dataset: bool) -> None:
     from . import runner
 
     cfg = runconfig.from_dict(cfg_dict)
-    if build_dataset:
-        dataset.build_many(cfg.benchmark, cfg.scale_factor, cfg.layouts)
+    # Preparation (pulling or building every target, building datasets) runs in parallel; it
+    # finishes before the first measurement, so it cannot affect the results.
+    # Source builds need most of the CPU and memory, so they run alone and one at a time;
+    # image pulls overlap with the dataset build.
+    import re as _re
+    from concurrent.futures import ThreadPoolExecutor
+
+    def is_pull(t) -> bool:
+        return bool(_re.fullmatch(r"(?:latest|(?:release:|trino:)?\d+|image:.+)", t.source.strip()))
+
+    for t in cfg.targets:
+        if not is_pull(t):
+            get_engine(t.engine).resolve(t.source)
+    with ThreadPoolExecutor(max_workers=len(cfg.targets) + 1) as pool:
+        jobs = [pool.submit(get_engine(t.engine).resolve, t.source) for t in cfg.targets if is_pull(t)]
+        if build_dataset:
+            jobs.append(pool.submit(dataset.build_many, cfg.benchmark, cfg.scale_factor, cfg.layouts))
+        for j in jobs:
+            j.result()
     _finish(runner.run_benchmark(cfg, output))
 
 

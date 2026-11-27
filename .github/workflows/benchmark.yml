@@ -43,7 +43,7 @@ on:
         options: [quick, standard, thorough]
         default: standard
       queries:
-        description: "Queries: all, or a list like q01,q06"
+        description: "Queries: all, quick (small representative subset), or a list like q01,q06"
         default: all
       match:
         description: "Only queries whose SQL matches this regex, e.g. avg\\s*\\("
