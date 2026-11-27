@@ -66,6 +66,11 @@ catalogs:
           fs.native-s3.enabled: null
           fs.s3.enabled: "true"
 
+  # JMX tables (GC, allocation, S3 request counters); only added for the profile pass.
+  jmx:
+    base:
+      connector.name: jmx
+
 # Overrides applied to the image's own /etc/trino/config.properties (kept as shipped
 # otherwise, so each version runs with its default settings).
 config:

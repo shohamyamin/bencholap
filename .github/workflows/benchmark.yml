@@ -57,6 +57,10 @@ on:
         description: Publish to the public results site
         type: boolean
         default: true
+      profile_mode:
+        description: "After the measurements, profile one more pass per configuration (operators, GC, S3, async-profiler)"
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       request:
@@ -100,6 +104,7 @@ jobs:
           REQ_MATCH: ${{ inputs.match }}
           REQ_VARIANTS: ${{ inputs.variants }}
           REQ_PUBLISH: ${{ inputs.publish }}
+          REQ_PROFILE_MODE: ${{ inputs.profile_mode }}
           REQ_KIND: manual
         run: |
           if [ -n "$REQ_JSON" ]; then uv run bencholap request from-json; else uv run bencholap request from-inputs; fi
@@ -166,6 +171,13 @@ jobs:
       - name: Run
         id: run
         run: uv run bencholap request run request/request.json -o results
+      - name: Profile summary
+        if: always() && steps.run.outputs.run_id != ''
+        env:
+          RUN_ID: ${{ steps.run.outputs.run_id }}
+        run: |
+          f="results/$RUN_ID/profile.md"
+          if [ -f "$f" ]; then head -c 500000 "$f" >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Save dataset
         if: steps.cache.outputs.cache-hit != 'true' && success()
         run: uv run bencholap stack export dataset-state.tar

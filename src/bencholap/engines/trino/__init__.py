@@ -117,6 +117,7 @@ class TrinoSession:
         u = urlparse(base_url)
         self.base_url = base_url.rstrip("/")
         self.user = user
+        self.last_info: dict = {}
         self.conn = trino.dbapi.connect(
             host=u.hostname, port=u.port or (443 if u.scheme == "https" else 80), http_scheme=u.scheme,
             user=user, catalog="iceberg", schema=schema,
@@ -142,6 +143,7 @@ class TrinoSession:
         wall_ms = (time.perf_counter() - t0) * 1000
         columns = [d[0] for d in cur.description] if cur.description else None
         info = self._query_info(cur.query_id)
+        self.last_info = info  # full query info of the last statement (used by the profile pass)
         return StatementResult(rows if fetch else None, columns, cur.query_id, wall_ms, extract_stats(info))
 
     def explain(self, sql: str) -> str | None:

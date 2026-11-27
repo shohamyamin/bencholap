@@ -119,6 +119,9 @@ Per query and configuration, over the measured runs:
 - **Every commit is built once**: GitHub runs push each source-built image to
   `ghcr.io/<owner>/bencholap-trino:git-<commit>` and later runs pull it instead of building
   (`BENCHOLAP_IMAGE_CACHE` locally; a failed pull just builds, a failed push never fails a run).
+- **Profile mode** (optional): after the measurements, one profiled pass per configuration with
+  operator summaries, GC / allocation / S3 counters and async-profiler CPU and allocation flame
+  graphs, summarized in `profile.md` ([how-to](docs/how-to.md#profiling-a-change-profile-mode)).
 - Measurement itself stays isolated: one fresh cluster per configuration, the same warmup and
   repetitions for every target, and alternating rounds.
 

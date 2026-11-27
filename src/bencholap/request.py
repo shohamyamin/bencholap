@@ -49,6 +49,7 @@ class Request:
     match: str | None = None
     variants: str | None = None
     publish: bool = True
+    profile_mode: bool = False
     title: str | None = None
     description: str | None = None
     kind: str = "request"
@@ -156,6 +157,7 @@ def to_run_config(req: Request) -> dict:
         "resources": prof["resources"], "cluster": prof["cluster"],
         "targets": targets,
         "profile": prof["name"], "preset": req.preset,
+        "profile_mode": bool(req.profile_mode),
         "request": {"issue": req.issue, "requested_by": req.requested_by, "variants": req.variants,
                     "repo": os.environ.get("GITHUB_REPOSITORY")},
     }
@@ -170,7 +172,7 @@ ISSUE_FIELDS = {
     "benchmark": "benchmark", "scale factor": "scale_factor", "cluster profile": "profile",
     "repetitions": "preset", "queries": "queries", "query filter": "match",
     "settings variants": "variants", "publish results": "publish", "what are you testing?": "description",
-    "table layouts": "layouts",
+    "table layouts": "layouts", "profile mode": "profile_mode",
 }
 
 
@@ -201,6 +203,7 @@ def parse_issue(body: str, title: str | None = None, number: int | None = None,
         layouts=[x.split()[0] for x in (v["layouts"] or "").split(",") if x.strip()],
         variants=None if (v["variants"] or "none").split()[0] in ("none", "defaults") else v["variants"].split()[0],
         publish=(v["publish"] or "yes").lower().startswith("yes"),
+        profile_mode=(v["profile_mode"] or "no").lower().startswith(("yes", "true")),
         title=(title or "")[:150] or None,
         description=(v["description"] or "")[:2000] or None,
         kind="request", issue=number, requested_by=author,
@@ -233,6 +236,8 @@ def describe(req: Request) -> str:
             pass
     if req.variants:
         lines.append(f"| settings variants | `{req.variants}`: {profiles.variants()[req.variants].get('title', '')} |")
+    if req.profile_mode:
+        lines.append("| profile mode | yes: after the measurements, one more profiled pass per configuration |")
     lines.append(f"| publish | {'yes' if req.publish else 'no (results only in the workflow artifact)'} |")
     return "\n".join(lines)
 

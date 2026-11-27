@@ -85,6 +85,27 @@ Maintainers can also start runs directly: **Actions → benchmark → Run workfl
 On shared GitHub runners, trust CPU time, input bytes and plan changes more than small wall-time
 differences.
 
+## Profiling a change (profile mode)
+
+Set **profile_mode** (workflow form, `profile_mode: true` in a request or run config) to see
+where the time goes. After all timed runs, so the timings are unaffected, every configuration
+gets a fresh cluster with an extra `jmx` catalog and runs each query three more times: a warmup
+pass, a pass under async-profiler in CPU mode and a pass under async-profiler in allocation
+mode. The CPU pass records per query:
+
+- the operator summary from Trino's query info, summed by operator type (CPU, wall, blocked,
+  input and output rows and bytes, peak memory), top 10 by CPU;
+- GC count and time, allocated bytes and S3 request counts (GET, HEAD, LIST, ...), as JMX
+  deltas summed over all nodes.
+
+Results: `results/<run>/profile.md` (also in the job summary) with per query the top operators
+and their CPU share, the 30 hottest Java frames (self time) per configuration and the frames
+that changed most against the baseline; `results/<run>/profiles/<configuration>/` with
+`cpu.collapsed` / `alloc.collapsed` (stacks merged over nodes, values in CPU ns or bytes) and
+flame graphs (`cpu.html`, `alloc.html`, one per node); and a `profile` section in
+`result.json`. Download them from the workflow's `results` artifact. A profiling failure is
+listed in `profile.md` and never fails the run.
+
 ## Exploring results
 
 - **Runs**: every published run; filter by benchmark, profile and kind, sort by change,

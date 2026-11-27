@@ -204,6 +204,13 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
                 session.close()
                 running.stop()
 
+    profile = None
+    if cfg.profile_mode:
+        # after every measurement, on fresh clusters, so the timings above are unaffected
+        from .profiling import run_profile_pass
+
+        profile = run_profile_pass(cfg, bench, resolved, manifests, output_dir / run_id)
+
     results = {
         "schema_version": RESULTS_SCHEMA_VERSION,
         "run_id": run_id,
@@ -226,7 +233,16 @@ def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
         "configurations": list(configurations.values()),
         "queries": [r.as_dict() for r in records.values()],
     }
+    if profile is not None:
+        results["profile"] = profile
     out = output_dir / run_id / "result.json"
     write_json(out, results)
+    if profile is not None:
+        from .profiling import write_markdown
+
+        try:
+            log.info("profile summary written to %s", write_markdown(results, out.parent))
+        except Exception:  # noqa: BLE001 - profiling never fails the run
+            log.error("profile summary failed:\n%s", traceback.format_exc())
     log.info("results written to %s", out)
     return out

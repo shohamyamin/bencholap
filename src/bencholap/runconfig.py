@@ -12,6 +12,7 @@ Example::
     warmup: 1                      # unmeasured executions per query
     repetitions: 3                 # measured executions per query
     rounds: 1                      # >1 alternates targets (A B A B) to spread machine noise
+    profile_mode: false            # true: one profiled pass per configuration after the measurements
     timeout: 10m                   # per-query limit
     resources: {memory: 10g, cpus: 4}   # per engine container
     cluster: {type: docker, workers: 0}  # docker | command | external, see engines/trino
@@ -88,6 +89,7 @@ class RunConfig:
     targets: list[TargetSpec]
     variants: list[Variant]
     layouts: list[str] = field(default_factory=list)
+    profile_mode: bool = False
     raw: dict = field(default_factory=dict)
 
     def configurations(self) -> list[tuple[TargetSpec, Variant]]:
@@ -157,7 +159,7 @@ def from_dict(d: dict) -> RunConfig:
         rounds=int(d.get("rounds", 1)), timeout=str(d.get("timeout", "10m")),
         resources=d.get("resources") or {"memory": "10g"}, capture_plans=bool(d.get("capture_plans", True)),
         cluster=d.get("cluster") or {"type": "docker", "workers": 0},
-        targets=targets, variants=variants, layouts=layouts, raw=d,
+        targets=targets, variants=variants, layouts=layouts, profile_mode=bool(d.get("profile_mode")), raw=d,
     )
 
 

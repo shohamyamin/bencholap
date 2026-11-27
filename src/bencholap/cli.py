@@ -419,7 +419,8 @@ def request_from_inputs(out: Path) -> None:
         layouts=e.get("REQ_LAYOUTS", ""),
         match=e.get("REQ_MATCH") or None,
         variants=None if e.get("REQ_VARIANTS", "none") in ("", "none") else e["REQ_VARIANTS"],
-        publish=e.get("REQ_PUBLISH", "true") == "true", title=e.get("REQ_TITLE") or None,
+        publish=e.get("REQ_PUBLISH", "true") == "true", profile_mode=e.get("REQ_PROFILE_MODE") == "true",
+        title=e.get("REQ_TITLE") or None,
         kind=e.get("REQ_KIND", "request"), requested_by=e.get("GITHUB_ACTOR"),
         issue=int(e["REQ_ISSUE"]) if e.get("REQ_ISSUE") else None,
     ))
