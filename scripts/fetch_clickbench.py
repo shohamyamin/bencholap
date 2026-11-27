@@ -38,7 +38,7 @@ def main() -> None:
             + q.rstrip(";") + ";\n")
 
     create = fetch(f"{SRC}/create.sql")
-    raw = re.search(r"CREATE TABLE hive\.clickbench\.hits_raw \((.*?)\)\s*WITH", create, re.S).group(1)
+    raw = re.search(r"CREATE TABLE hive\.clickbench\.hits_raw \((.*?)\)\s*WITH", create, re.DOTALL).group(1)
     cols = [ln.strip().rstrip(",").split() for ln in raw.splitlines() if ln.strip() and not ln.strip().startswith("--")]
     (OUT / "staging.sql").write_text(
         f"-- Raw table over the ClickBench Parquet files: column list from ClickHouse/ClickBench@{COMMIT[:12]}\n"
@@ -46,7 +46,7 @@ def main() -> None:
         "CREATE TABLE {table} (\n" + ",\n".join(f"    {c} {t}" for c, t in cols)
         + "\n) WITH (external_location = '{location}', format = 'PARQUET')\n")
 
-    view = re.search(r"CREATE VIEW hive\.clickbench\.hits AS\s*(SELECT.*?)FROM hive\.clickbench\.hits_raw", create, re.S).group(1)
+    view = re.search(r"CREATE VIEW hive\.clickbench\.hits AS\s*(SELECT.*?)FROM hive\.clickbench\.hits_raw", create, re.DOTALL).group(1)
     (OUT / "load.sql").write_text(
         f"-- Benchmark table from the raw table: the hits view of ClickHouse/ClickBench@{COMMIT[:12]}\n"
         f"-- {SRC}/create.sql (EventTime, ClientEventTime and LocalEventTime are Unix seconds in the files).\n"
@@ -54,7 +54,7 @@ def main() -> None:
 
     # from_unixtime returns timestamp(3) with time zone; Iceberg stores it as timestamp(6) with time zone
     converted = {m.group(2): "timestamp(6) with time zone"
-                 for m in re.finditer(r"from_unixtime\((\w+)\)\s+AS\s+(\w+)", view, re.I)}
+                 for m in re.finditer(r"from_unixtime\((\w+)\)\s+AS\s+(\w+)", view, re.IGNORECASE)}
     schema = {"hits": [[c.lower(), converted.get(c, t)] for c, t in cols]}
     (OUT / "schema.yaml").write_text(
         "# Columns of the ClickBench hits table after load.sql (used for check-sql against empty tables).\n"

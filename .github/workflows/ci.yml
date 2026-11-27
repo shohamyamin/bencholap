@@ -13,6 +13,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --extra dev
       - run: uv run ruff check src scripts
+      - name: Benchmark docs are up to date
+        run: uv run python scripts/make_docs.py && git diff --exit-code docs/benchmarks.md
       - name: CLI loads and benchmark definitions parse
         run: |
           uv run bencholap --help

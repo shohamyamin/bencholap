@@ -9,7 +9,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .. import stats
+from .. import benchmarks, stats
 from ..plans import query_plan_hash
 from ..util import read_json
 
@@ -318,6 +318,10 @@ def payload(result: dict, a: dict) -> dict:
     present = {m for q in result["queries"] for m in (q.get("summary") or {})}
     metrics = [{"key": k, "label": lbl, "kind": kind} for k, lbl, kind in METRICS if k in present]
     queries = []
+    try:
+        descriptions = benchmarks.load(result["benchmark"]["name"]).descriptions()
+    except ValueError:
+        descriptions = {}
     for row in a["queries"]:
         qid = row["query"]
         cells = {}
@@ -344,7 +348,7 @@ def payload(result: dict, a: dict) -> dict:
             }
         sql = next((q.get("sql") for q in result["queries"] if q["query"] == qid and q.get("sql")), None)
         queries.append({"q": qid, "cells": cells, "results_differ": row["results_differ"],
-                        "ok_everywhere": row["ok_everywhere"], "sql": sql})
+                        "ok_everywhere": row["ok_everywhere"], "sql": sql, "about": descriptions.get(qid)})
     plans = {}
     for q in result["queries"]:
         text = (q.get("plan") or {}).get("text")

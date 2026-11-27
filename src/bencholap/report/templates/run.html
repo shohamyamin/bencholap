@@ -252,7 +252,7 @@ function header() {
     `<th class="num sortable" data-type="num" data-asc="1" data-key="${c.id === state.ref ? 'v:' : 'r:'}${esc(c.id)}"><span class="dot" style="background:${color[c.id]}"></span>${esc(label(c))}${c.id === state.ref ? ' (reference)' : ' (Δ)'}</th>`).join('')}</tr>`;
 }
 header();
-const drawTable = BL.sortable(qt, rowsForTable, q => `<tr class="click" onclick="openQuery('${q.q}')"><td><b>${q.q}</b>${q.results_differ ? '<br><span class="pill warn">results differ</span>' : ''}</td>${D.configs.map(c => cellHtml(q, c)).join('')}</tr>`, {key: 'q'});
+const drawTable = BL.sortable(qt, rowsForTable, q => `<tr class="click" onclick="openQuery('${q.q}')"><td><b>${q.q}</b>${q.about ? `<div class="tiny muted" style="max-width:240px">${esc(q.about.length > 80 ? q.about.slice(0, 80) + '…' : q.about)}</div>` : ''}${q.results_differ ? '<span class="pill warn">results differ</span>' : ''}</td>${D.configs.map(c => cellHtml(q, c)).join('')}</tr>`, {key: 'q'});
 function redrawTable() { drawTable(); document.getElementById('qCount').textContent = `${qt.querySelectorAll('tbody tr.click').length} of ${D.queries.length} queries`; }
 [qFilter, onlySig, onlyProblems].forEach(e => e.addEventListener('input', redrawTable));
 redrawTable();
@@ -280,6 +280,7 @@ function openQuery(qid) {
     planHtml = `<div class="grid g2"><div><div class="small"><b>${esc(state.ref)}</b></div><pre>${x}</pre></div><div><div class="small"><b>${esc(cmp)}</b></div><pre>${y}</pre></div></div>`;
   } else if (pa) planHtml = `<pre>${esc(pa)}</pre>`;
   document.getElementById('dBody').innerHTML = `
+    ${q.about ? `<div class="card flat" style="margin-bottom:10px"><b>What it does:</b> ${esc(q.about)}</div>` : ''}
     <div class="card flat">${status}</div>
     <h2>Runs <span class="hint">every measured execution (${esc(M[state.metric].label)})</span></h2><div class="card"><div class="chart" id="runsChart" style="height:240px"></div></div>
     <h2>All metrics <span class="hint">median, change vs baseline, min – max</span></h2>

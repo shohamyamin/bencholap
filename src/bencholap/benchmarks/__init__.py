@@ -96,6 +96,10 @@ class Benchmark:
     def dir(self) -> Path:
         return BENCH_DIR / self.name
 
+    def descriptions(self) -> dict[str, str]:
+        p = self.dir / "descriptions.yaml"
+        return yaml.safe_load(p.read_text()) if p.exists() else {}
+
     def scale_factors(self) -> list[str]:
         return list(self.supported_sf)
 
