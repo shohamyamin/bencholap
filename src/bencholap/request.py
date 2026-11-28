@@ -50,6 +50,9 @@ class Request:
     variants: str | None = None
     publish: bool = True
     profile_mode: bool = False
+    # which engines write the datasets: "default" (the pinned loader) and/or target roles
+    # ("baseline", "change", "target2", ...); each one writes its own copy of every layout
+    loaders: list[str] = field(default_factory=list)
     title: str | None = None
     description: str | None = None
     kind: str = "request"
@@ -119,6 +122,19 @@ def validate(req: Request) -> Request:
                         f"available: {', '.join(bench.layouts)}")
         if len(req.layouts) > 6:
             errs.append("at most 6 layouts per request")
+    if isinstance(req.loaders, str):
+        req.loaders = [x for x in re.split(r"[,\s]+", req.loaders) if x]
+    req.loaders = list(dict.fromkeys(x.strip().lower() for x in req.loaders or [] if x.strip()))
+    if req.loaders == ["default"]:
+        req.loaders = []
+    roles = loader_roles(len(req.targets))
+    unknown = [x for x in req.loaders if x not in roles]
+    if unknown:
+        errs.append(f"unknown loaders {', '.join(f'`{x[:40]}`' for x in unknown)}; choose from {', '.join(roles)}")
+    if len(req.loaders) > 3:
+        errs.append("at most 3 loaders per request")
+    if len(req.layouts or []) * max(1, len(req.loaders)) > 6:
+        errs.append("at most 6 datasets (layouts x loaders) per request")
     if not errs:
         try:
             bench = benchmarks.load(req.benchmark)
@@ -127,6 +143,15 @@ def validate(req: Request) -> Request:
             errs.append(str(e))
     req.errors = errs
     return req
+
+
+def loader_roles(target_count: int) -> list[str]:
+    """Names a request can use in `loaders`: the pinned default loader or a target by role."""
+    return ["default"] + [_role(i) for i in range(target_count)]
+
+
+def _role(i: int) -> str:
+    return "baseline" if i == 0 else "change" if i == 1 else f"target{i}"
 
 
 def selected_queries(req: Request) -> list[str]:
@@ -145,8 +170,9 @@ def to_run_config(req: Request) -> dict:
         if req.kind in ("sweep", "release") and re.fullmatch(r"\d+", t):
             name = f"trino-{t}"
         else:
-            name = ("baseline" if i == 0 else "change" if i == 1 else f"target{i}") + f"-{short}"
+            name = f"{_role(i)}-{short}"
         targets.append({"name": name, "source": t})
+    names_by_role = {_role(i): t["name"] for i, t in enumerate(targets)}
     d = {
         "name": req.title or " vs ".join(req.targets),
         "kind": req.kind,
@@ -158,6 +184,7 @@ def to_run_config(req: Request) -> dict:
         "targets": targets,
         "profile": prof["name"], "preset": req.preset,
         "profile_mode": bool(req.profile_mode),
+        "loaders": [names_by_role.get(x, "default") for x in req.loaders] if req.loaders else ["default"],
         "request": {"issue": req.issue, "requested_by": req.requested_by, "variants": req.variants,
                     "repo": os.environ.get("GITHUB_REPOSITORY")},
     }
@@ -236,6 +263,9 @@ def describe(req: Request) -> str:
             pass
     if req.variants:
         lines.append(f"| settings variants | `{req.variants}`: {profiles.variants()[req.variants].get('title', '')} |")
+    if req.loaders:
+        lines.append(f"| dataset loaders | {', '.join(f'`{x}`' for x in req.loaders)}: every layout is written by "
+                     "each of them and every configuration reads every copy |")
     if req.profile_mode:
         lines.append("| profile mode | yes: after the measurements, one more profiled pass per configuration |")
     lines.append(f"| publish | {'yes' if req.publish else 'no (results only in the workflow artifact)'} |")

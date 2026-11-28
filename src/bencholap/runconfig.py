@@ -7,6 +7,8 @@ Example::
     scale_factor: 1
     layout: unpartitioned          # a layout from the benchmark definition (`bencholap layouts`)
     # layouts: [unpartitioned, sorted]   # or several: every target runs on every layout
+    # loaders: [default, head]       # optional: who writes the datasets: the pinned loader ("default")
+    #                                # and/or targets by name; every target reads every copy
     queries: all                   # or [q01, q06]
     match: "avg\\s*\\("             # optional: only queries whose SQL matches this regex
     warmup: 1                      # unmeasured executions per query
@@ -88,12 +90,18 @@ class RunConfig:
     cluster: dict
     targets: list[TargetSpec]
     variants: list[Variant]
+    # dataset keys: a layout name, or "<layout>@<target name>" for a copy written by that target
     layouts: list[str] = field(default_factory=list)
     profile_mode: bool = False
     raw: dict = field(default_factory=dict)
 
     def configurations(self) -> list[tuple[TargetSpec, Variant]]:
         return [(t, v) for t in self.targets for v in self.variants]
+
+    def dataset_loader(self, key: str) -> TargetSpec | None:
+        """The target that writes the dataset `key`, None for the pinned default loader."""
+        _, _, name = key.partition("@")
+        return next(t for t in self.targets if t.name == name) if name else None
 
 
 def _combine(a: Overrides, b: Overrides) -> Overrides:
@@ -152,6 +160,14 @@ def from_dict(d: dict) -> RunConfig:
         names = [x.strip() for x in names.split(",") if x.strip()]
     layouts = list(dict.fromkeys(bench.layout(n).name for n in names))
     layout = layouts[0]
+    loaders = d.get("loaders") or ["default"]
+    if isinstance(loaders, str):
+        loaders = [x.strip() for x in loaders.split(",") if x.strip()]
+    target_names = {t.name for t in targets}
+    unknown = [x for x in loaders if x != "default" and x not in target_names]
+    if unknown:
+        raise ValueError(f"loaders {unknown} are neither `default` nor target names {sorted(target_names)}")
+    layouts = [lay if loader == "default" else f"{lay}@{loader}" for lay in layouts for loader in dict.fromkeys(loaders)]
     return RunConfig(
         name=d.get("name") or " vs ".join(t.name for t in targets),
         benchmark=bench.name, scale_factor=sf, layout=layout,

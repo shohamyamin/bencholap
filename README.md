@@ -94,6 +94,13 @@ layouts** to see how a Trino version deals with organized data:
 One request can run several layouts; every target runs on each, and the report compares any two
 configurations (versions, variants or layouts). `bencholap layouts` lists them with their sources.
 
+Datasets are normally written by a pinned Trino release, so every target reads the same files.
+To measure a change to the writer (for example Parquet page indexes or compression), a request can
+set **loaders** (`default`, `baseline`, `change`, `target2`, ...): each named target also writes its
+own copy of every layout (schema suffix `_w<commit>`), and every target reads every copy, e.g.
+`loaders: baseline,change` compares files written by both builds. These copies are rebuilt in
+every run and are not saved to the shared dataset cache.
+
 ## What is measured
 
 Per query and configuration, over the measured runs:

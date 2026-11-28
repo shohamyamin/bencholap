@@ -119,21 +119,20 @@ def _dataset_summary(manifest: dict) -> dict:
 
 def run_benchmark(cfg: RunConfig, output_dir: Path) -> Path:
     bench = benchmarks.load(cfg.benchmark)
-    manifests = {}
-    for lay in cfg.layouts:
-        ds = dataset.DatasetId(bench.name, cfg.scale_factor, lay)
-        manifests[lay] = dataset.get_manifest(ds)
-        if not manifests[lay]:
-            raise RuntimeError(f"dataset {ds.key} is not built; run `bencholap dataset build --benchmark "
-                               f"{bench.name} --sf {cfg.scale_factor} --layout {lay}` first")
-    stack.ensure_up()
-
     started = time.time()
     run_id = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(started)) + "-" + stable_hash(cfg.raw, 6)
     resolved: dict[str, ResolvedTarget] = {}
     for t in cfg.targets:
         log.info("resolving target %s = %s", t.name, t.source)
         resolved[t.name] = get_engine(t.engine).resolve(t.source)
+    manifests = {}
+    for lay in cfg.layouts:
+        ds = dataset.dataset_id(bench.name, cfg.scale_factor, lay, resolved)
+        manifests[lay] = dataset.get_manifest(ds)
+        if not manifests[lay]:
+            raise RuntimeError(f"dataset {ds.key} is not built; run `bencholap dataset build --benchmark "
+                               f"{bench.name} --sf {cfg.scale_factor} --layout {ds.layout}` first")
+    stack.ensure_up()
 
     configurations: dict[str, dict] = {}
     records: dict[tuple[str, str], QueryRecord] = {}

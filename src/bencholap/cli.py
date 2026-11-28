@@ -211,7 +211,8 @@ def _execute(cfg_dict: dict, output: Path, build_dataset: bool) -> None:
     with ThreadPoolExecutor(max_workers=len(cfg.targets) + 1) as pool:
         jobs = [pool.submit(get_engine(t.engine).resolve, t.source) for t in cfg.targets if is_pull(t)]
         if build_dataset:
-            jobs.append(pool.submit(dataset.build_many, cfg.benchmark, cfg.scale_factor, cfg.layouts))
+            loaders = {key: t.source for key in cfg.layouts if (t := cfg.dataset_loader(key))}
+            jobs.append(pool.submit(dataset.build_many, cfg.benchmark, cfg.scale_factor, cfg.layouts, loaders))
         for j in jobs:
             j.result()
     _finish(runner.run_benchmark(cfg, output))
@@ -398,7 +399,9 @@ def _finish_request(req, out: Path) -> None:
         runner = profiles.cluster(req.profile)["runner"]
     _gh_output(status=status, runner=runner or "", request=req.to_json(),
                dataset_key=f"dataset-{req.benchmark}-sf{req.scale_factor}-{'+'.join(sorted(req.layouts))}",
-               dataset_prefix=f"dataset-{req.benchmark}-sf{req.scale_factor}-")
+               dataset_prefix=f"dataset-{req.benchmark}-sf{req.scale_factor}-",
+               # copies written by targets under test are rebuilt every run and stay out of the shared cache
+               dataset_save="false" if req.loaders else "true")
     click.echo(comment)
     if req.errors:
         sys.exit(2)
@@ -416,7 +419,7 @@ def request_from_inputs(out: Path) -> None:
         targets=[t for t in targets if t.strip()], benchmark=e.get("REQ_BENCHMARK", "tpch"),
         scale_factor=e.get("REQ_SCALE_FACTOR", "1"), profile=e.get("REQ_PROFILE", "gh-standard"),
         preset=e.get("REQ_PRESET", "standard"), queries=e.get("REQ_QUERIES") or "all",
-        layouts=e.get("REQ_LAYOUTS", ""),
+        layouts=e.get("REQ_LAYOUTS", ""), loaders=e.get("REQ_LOADERS", ""),
         match=e.get("REQ_MATCH") or None,
         variants=None if e.get("REQ_VARIANTS", "none") in ("", "none") else e["REQ_VARIANTS"],
         publish=e.get("REQ_PUBLISH", "true") == "true", profile_mode=e.get("REQ_PROFILE_MODE") == "true",

@@ -10,6 +10,7 @@ Every engine and version under test then reads exactly the same Iceberg snapshot
 
 from __future__ import annotations
 
+import re
 import shutil
 import time
 from dataclasses import dataclass
@@ -33,15 +34,32 @@ class DatasetId:
     benchmark: str
     scale_factor: str
     layout: str
+    writer: str = ""     # empty: written by the pinned default loader; else a tag of the engine build that wrote it
 
     @property
     def schema(self) -> str:
         sf = self.scale_factor.replace(".", "_")
-        return f"{self.benchmark}_sf{sf}_{self.layout}".replace("-", "_")
+        suffix = f"_w{self.writer}" if self.writer else ""
+        return f"{self.benchmark}_sf{sf}_{self.layout}{suffix}".replace("-", "_")
 
     @property
     def key(self) -> str:
-        return f"{self.benchmark}/sf{self.scale_factor}/{self.layout}"
+        return f"{self.benchmark}/sf{self.scale_factor}/{self.layout}" + (f"@{self.writer}" if self.writer else "")
+
+
+def writer_tag(target) -> str:
+    """Identifies the build that wrote a dataset: the commit of source builds, otherwise the version."""
+    commit = (target.source or {}).get("commit") or ""
+    if re.fullmatch(r"[0-9a-f]{12,40}", commit):
+        return commit[:12]
+    return re.sub(r"[^0-9a-z]+", "_", str(target.version).lower()).strip("_") or "unknown"
+
+
+def dataset_id(benchmark: str, sf: str, key: str, resolved: dict) -> DatasetId:
+    """DatasetId of a run's dataset key ("<layout>" or "<layout>@<target name>"), `resolved` maps target names to
+    resolved targets."""
+    layout, _, loader = key.partition("@")
+    return DatasetId(benchmark, sf, layout, writer_tag(resolved[loader]) if loader else "")
 
 
 def manifest_path(ds: DatasetId) -> Path:
@@ -127,20 +145,33 @@ def _table_props(tl: benchmarks.TableLayout) -> list[str]:
     return props
 
 
-def build_many(benchmark: str, sf: str, layouts: list[str | None], **kw) -> list[dict]:
-    """Build several layouts of one benchmark and scale factor from the same raw data."""
+def build_many(benchmark: str, sf: str, layouts: list[str | None], loaders: dict[str, str] | None = None,
+               **kw) -> list[dict]:
+    """Build several datasets of one benchmark and scale factor from the same raw data. `layouts` are layout
+    names or "<layout>@<target name>" keys; `loaders` maps the keys written by a target to its source."""
     keep = kw.pop("keep_raw", False)
-    return [build(benchmark, sf, lay, keep_raw=keep or i < len(layouts) - 1, **kw) for i, lay in enumerate(layouts)]
+    loaders = loaders or {}
+    out = []
+    for i, key in enumerate(layouts):
+        layout = key.partition("@")[0] if key else key
+        extra = {"loader": loaders[key], "tag_writer": True} if key in loaders else {}
+        out.append(build(benchmark, sf, layout, keep_raw=keep or i < len(layouts) - 1, **kw, **extra))
+    return out
 
 
 def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFAULT_LOADER,
-          force: bool = False, keep_raw: bool = False, resources: dict | None = None) -> dict:
+          force: bool = False, keep_raw: bool = False, resources: dict | None = None,
+          tag_writer: bool = False) -> dict:
+    """`tag_writer`: the dataset is a separate copy identified by the loader build (DatasetId.writer), for
+    comparing what different engine builds write; otherwise it is the shared dataset of the pinned loader."""
     bench = benchmarks.load(benchmark)
     sf = benchmarks.format_sf(sf)
     if sf not in bench.scale_factors():
         raise ValueError(f"{benchmark} has canonical queries for scale factors {bench.scale_factors()}, not {sf}")
     lay = bench.layout(layout)
-    ds = DatasetId(bench.name, sf, lay.name)
+    engine = get_engine("trino")
+    target = engine.resolve(loader) if tag_writer else None
+    ds = DatasetId(bench.name, sf, lay.name, writer_tag(target) if target else "")
     existing = get_manifest(ds)
     if existing and not force:
         if existing.get("layout") == lay.as_dict() and existing.get("generator") == bench.generator:
@@ -169,8 +200,7 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
         staging_ddl = (bench.dir / bench.staging["ddl"]).read_text()
         staging_select = (bench.dir / bench.staging["select"]).read_text()
 
-    engine = get_engine("trino")
-    target = engine.resolve(loader)
+    target = target or engine.resolve(loader)
     # Partitioned and sorted writes keep many writers open; give the loader query enough memory.
     running = engine.start(target, {"config": LOADER_CONFIG}, resources or {"memory": "10g"},
                            catalogs=("iceberg", "staging"), label="loader")
@@ -238,6 +268,7 @@ def build(benchmark: str, sf: str, layout: str | None = None, loader: str = DEFA
         "generator": bench.generator,
         "loader": {"spec": target.spec, "version": target.version, "image": target.image,
                    "source": target.source},
+        "writer": ds.writer,
         "stack": {"storage_image": stack.SEAWEEDFS_IMAGE, "catalog_image": stack.REST_CATALOG_IMAGE},
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "build_seconds": round(time.time() - started, 1),
